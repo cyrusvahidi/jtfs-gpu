@@ -1,6 +1,6 @@
  <div align="center">    
   
-# Differentiable Joint Time-Frequency Scattering with Kymatio
+# Differentiable Joint Time-Frequency Scattering in Kymatio
 
   [![Paper](http://img.shields.io/badge/paper-arxiv.1001.2234-B31B1B.svg)](https://www.nature.com/articles/nature14539)
   <!--
@@ -13,7 +13,7 @@
   -->   
   </div>
    
-Examples of Joint Time-Frequency Scattering with Kymatio, for audio signals
+Examples of Joint Time-Frequency Scattering in Kymatio, for audio signals
 
 ## How to run   
 First, install dependencies   
@@ -35,6 +35,16 @@ pip install git+https://github.com/kymatio/kymatio.git@refs/pull/674/head
 # run notebooks
 jupyter notebook
 ```
+
+### Notebook Guide
+
+#### Scale-Rate Visualisations
+
+#### Regressing f0, chirp rate and tremolo rate
+
+#### 2-D CNN classifier
+
+#### Differentiable Resynthesis 
 
 ### Citation   
 ```
