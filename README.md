@@ -13,7 +13,7 @@
   -->   
   </div>
    
---
+<hr>
 Examples of Joint Time-Frequency Scattering with Kymatio, for audio signals
 
 ## How to run   
