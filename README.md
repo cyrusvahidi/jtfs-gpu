@@ -13,8 +13,8 @@
   -->   
   </div>
    
-## Description   
-Kymatio examples of Joint Time-Frequency Scattering for audio signals
+--
+Examples of Joint Time-Frequency Scattering with Kymatio, for audio signals
 
 ## How to run   
 First, install dependencies   
