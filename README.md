@@ -24,6 +24,7 @@ git clone https://github.com/rastegah/kymatio-jtfs
 
 # install project   
 cd kymatio-jtfs
+pip install -e .
 pip install git+https://github.com/kymatio/kymatio.git@refs/pull/674/head
 pip install -r requirements.txt
  ```   
