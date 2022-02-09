@@ -13,8 +13,7 @@
   -->   
   </div>
    
-## Description   
-Kymatio examples of Joint Time-Frequency Scattering for audio signals
+Examples of Joint Time-Frequency Scattering with Kymatio, for audio signals
 
 ## How to run   
 First, install dependencies   
@@ -25,8 +24,8 @@ git clone https://github.com/rastegah/kymatio-jtfs
 # install project   
 cd kymatio-jtfs
 pip install -e .
-pip install git+https://github.com/kymatio/kymatio.git@refs/pull/674/head
 pip install -r requirements.txt
+pip install git+https://github.com/kymatio/kymatio.git@refs/pull/674/head
  ```   
   Run Jupyter   
    ```bash
