@@ -39,3 +39,11 @@ def chirp(T, f0, f1 = None, fs=1024, method='exp'):
         k = (f1 / f0) ** (1 / T)
         phi = np.cumsum(2 * np.pi * (f0 * k ** t) * (1 / fs))
     return np.cos(phi)
+
+
+def exp_chirp(T=1024, f0=10, rate=2):
+    t = np.linspace(0, 1, T)
+#     phi = 2 * np.pi * ((f0 * (np.exp(2 * t) - 1)) / rate)
+    phi = 2 * np.pi * (f0 * (2 ** (rate * t) - 1)) / (rate * np.log(2))
+    return np.cos(phi)
+    
