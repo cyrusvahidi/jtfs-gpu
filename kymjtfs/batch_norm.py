@@ -21,27 +21,24 @@ class ScatteringBatchNorm(nn.Module):
 
         self.eval_mode = eval_mode
 
-    def _check_input_dim(self, input):
-        if input.dim() != 2 and input.dim() != 3:
+    def _check_input_dim(self, x):
+        if int(x.shape[1]) != int(self.num_features):
             raise ValueError(
-                "expected 2D or 3D input (got {}D input)".format(input.dim())
-            )
-        if input.shape[-1] != self.num_features:
-            raise ValueError(
-                "expected last dim to equal feature dim: {} (got {}D input)".format(self.num_features, input.shape[-1])
+                "expected second dim to equal feature dim: {} (got {} input)".format(self.num_features, x.shape[1])
             )
 
-    def forward(self, sx)
+    def forward(self, sx):
         self._check_input_dim(sx)
         
+        sx = sx.permute(0, 2, 3, 1)
         if not self.eval_mode:
             batch_size = sx.shape[0]
             batch_mu =  (1 / batch_size) * torch.sum(sx, dim=0)
             
-            self.mu = (1 / (batch_size + 1)) * self.mu.type_as(sx) + /
-                (batch_size / (batch_size + 1)) * batch_mu
+            self.mu = (1 / (batch_size + 1)) * self.mu.type_as(sx) + (batch_size / (batch_size + 1)) * batch_mu
 
         sx = torch.log1p(torch.exp(self.c) * sx / (1e-3 + self.mu))
+        sx = sx.permute(0, 3, 1, 2)
         return sx 
 
     def eval(self):
