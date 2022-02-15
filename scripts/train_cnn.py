@@ -40,7 +40,7 @@ class MedleySolosClassifier(LightningModule):
         self.setup_jtfs()
         
         self.conv_net = EfficientNet.from_name('efficientnet-b0',
-                                               in_channels=self.jtfs_dim,
+                                               in_channels=self.jtfs_channels,
                                                include_top = True,
                                                num_classes = 8)
         
@@ -61,6 +61,7 @@ class MedleySolosClassifier(LightningModule):
         n_channels = self._get_jtfs_out_dim()
         
         self.jtfs_dim = self._get_jtfs_out_dim()
+        self.jtfs_channels = self.jtfs_dim[0]
         self.jtfs_bn = ScatteringBatchNorm(self.jtfs_dim)
         
     def forward(self, x):
@@ -72,7 +73,7 @@ class MedleySolosClassifier(LightningModule):
                    (0, 0, s2.shape[-2] - s1_conv.shape[-2], 0))
         
         sx = torch.cat([s1_conv, s2], dim=1)[:, :, :32, :]
-#         sx = self.jtfs_bn(sx)
+        sx = torch.log1p(self.jtfs_bn(sx))
         y = self.conv_net(sx)
         y = F.log_softmax(y, dim=1)
         return y
@@ -87,7 +88,7 @@ class MedleySolosClassifier(LightningModule):
         self.log(f'{fold}/loss', loss, on_step=True, on_epoch=True, prog_bar=True)
         self.log(f'{fold}/acc', acc, on_step=True, on_epoch=True, prog_bar=True)
         
-        return {f'{fold}/loss': loss, f'{fold}/acc': acc}
+        return {f'loss': loss, f'{fold}/acc': acc}
     
     def log_metrics(self, outputs, fold):
         keys = list(outputs[0].keys())
@@ -113,8 +114,8 @@ class MedleySolosClassifier(LightningModule):
         sx = self.jtfs(dummy_in)
         s1 = self.s1_conv1(sx[0])
         s1 = F.pad(s1, (0, 0, sx[1].shape[-2] - s1.shape[-2], 0))
-        S = torch.cat([s1, sx[1]], dim=1)
-        out_dim = S.size(1)
+        S = torch.cat([s1, sx[1]], dim=1)[:, :, :32, :]
+        out_dim = S.shape[1:3]
         return out_dim
     
 class Unsqueeze(nn.Module):
@@ -171,13 +172,13 @@ class MedleyDataModule(pl.LightningDataModule):
         self.test_ds = MedleySolosDB(self.data_dir, subset='test')
 
     def train_dataloader(self):
-        return DataLoader(self.train_ds, batch_size=self.batch_size, shuffle=True)
+        return DataLoader(self.train_ds, batch_size=self.batch_size, shuffle=True, drop_last=True)
 
     def val_dataloader(self):
-        return DataLoader(self.val_ds, batch_size=self.batch_size, shuffle=False)
+        return DataLoader(self.val_ds, batch_size=self.batch_size, shuffle=False, drop_last=True)
 
     def test_dataloader(self):
-        return DataLoader(self.test_ds, batch_size=self.batch_size, shuffle=False)
+        return DataLoader(self.test_ds, batch_size=self.batch_size, shuffle=False, drop_last=True)
 
 
 def run_train(n_epochs = 200, batch_size = 4):
@@ -190,14 +191,16 @@ def run_train(n_epochs = 200, batch_size = 4):
                         max_epochs=n_epochs,
                         progress_bar_refresh_rate=1, 
                         checkpoint_callback=True,
-                        callbacks=[early_stop_callback])
+                        callbacks=[early_stop_callback],
+                        fast_dev_run=True,
+                        overfit_batches=1)
     model, dataset = MedleySolosClassifier(), MedleyDataModule(batch_size=batch_size) 
     trainer.fit(model, dataset)
-    trainer.test()
+    trainer.test(model, dataset)
 
 
 def main():
-  fire.Fire(extract_jtfs_stats)
+  fire.Fire(run_train)
 
 
 if __name__ == "__main__":
