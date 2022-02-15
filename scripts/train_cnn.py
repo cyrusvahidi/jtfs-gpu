@@ -191,9 +191,7 @@ def run_train(n_epochs = 200, batch_size = 4):
                         max_epochs=n_epochs,
                         progress_bar_refresh_rate=1, 
                         checkpoint_callback=True,
-                        callbacks=[early_stop_callback],
-                        fast_dev_run=True,
-                        overfit_batches=1)
+                        callbacks=[early_stop_callback])
     model, dataset = MedleySolosClassifier(), MedleyDataModule(batch_size=batch_size) 
     trainer.fit(model, dataset)
     trainer.test(model, dataset)
