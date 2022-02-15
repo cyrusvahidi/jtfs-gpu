@@ -20,8 +20,6 @@ class ScatteringBatchNorm(nn.Module):
         self.register_buffer("mu", torch.zeros(self.path_shape))
         # self.c = torch.nn.Parameter(torch.ones(num_features, ) * 5.0) if not c else c
 
-        self.eval_mode = eval_mode
-
     def _check_input_dim(self, x):
         if x.shape[1:3] != self.path_shape:
             raise ValueError(
@@ -34,15 +32,11 @@ class ScatteringBatchNorm(nn.Module):
     def forward(self, sx):
         self._check_input_dim(sx)
         
-        if not self.eval_mode:
+        if self.training:
             batch_size = sx.shape[0]
             batch_mu =  sx.mean(dim=0).mean(dim=-1)
             
-            self.mu = (1 / (batch_size + 1)) * self.mu.type_as(sx) + (batch_size / (batch_size + 1)) * batch_mu
+            self.mu = (1 / (batch_size + 1)) * self.mu.detach() + (batch_size / (batch_size + 1)) * batch_mu
 
-        sx = sx / (1e-3 + self.mu.view(1, self.mu.shape[0], -1, 1))
+            sx = sx / (1e-3 + self.mu.view(1, self.mu.shape[0], -1, 1))
         return sx 
-
-    def eval(self):
-        self.eval_mode = True
-        return self.train(False)
