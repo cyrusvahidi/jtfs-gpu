@@ -172,13 +172,13 @@ class MedleyDataModule(pl.LightningDataModule):
         self.test_ds = MedleySolosDB(self.data_dir, subset='test')
 
     def train_dataloader(self):
-        return DataLoader(self.train_ds, batch_size=self.batch_size, shuffle=True, drop_last=True)
+        return DataLoader(self.train_ds, batch_size=self.batch_size, shuffle=True, drop_last=True, num_workers=80)
 
     def val_dataloader(self):
-        return DataLoader(self.val_ds, batch_size=self.batch_size, shuffle=False, drop_last=True)
+        return DataLoader(self.val_ds, batch_size=self.batch_size, shuffle=False, drop_last=True, num_workers=80)
 
     def test_dataloader(self):
-        return DataLoader(self.test_ds, batch_size=self.batch_size, shuffle=False, drop_last=True)
+        return DataLoader(self.test_ds, batch_size=self.batch_size, shuffle=False, drop_last=True, num_workers=80)
 
 
 def run_train(n_epochs = 200, batch_size = 4):
