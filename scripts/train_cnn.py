@@ -44,7 +44,7 @@ class MedleySolosClassifier(LightningModule):
                                                include_top = True,
                                                num_classes = 8)
         
-        self.acc_metric = torchmetrics.Accuracy()
+        self.acc_metric = torchmetrics.AveragePrecision(num_classes = 8)
 
     def setup_jtfs(self):
         self.jtfs = TimeFrequencyScattering1D(
