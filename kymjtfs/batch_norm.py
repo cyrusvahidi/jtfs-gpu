@@ -38,5 +38,5 @@ class ScatteringBatchNorm(nn.Module):
             
             self.mu = (1 / (batch_size + 1)) * self.mu.detach() + (batch_size / (batch_size + 1)) * batch_mu
 
-            sx = sx / (1e-3 + self.mu.view(1, self.mu.shape[0], -1, 1))
+        sx = sx / (1e-3 + self.mu.view(1, self.mu.shape[0], -1, 1))
         return sx 
