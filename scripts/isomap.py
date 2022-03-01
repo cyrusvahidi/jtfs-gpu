@@ -1,4 +1,4 @@
-import os
+import os, sys
 import fire, tqdm
 import numpy as np, matplotlib.pyplot as plt, scipy
 import librosa, librosa.feature, librosa.display
@@ -101,8 +101,29 @@ def extract_openl3(audio, sr, **ol3_kwargs):
     return np.stack(X_ol3).mean(axis=1)
 
 
-def extract_strf(audio, sr, **strf_kwargs):
-    pass
+def extract_strf(audio, duration, sr, **strf_kwargs):
+    sys.path.insert(1, os.getcwd() + '/strf-like-model')
+    import auditory
+
+    X = audio 
+    n_samples = X.shape[0]
+    S = auditory.strf(X[0, :], audio_fs=sr, duration=duration)
+    S = np.concatenate((
+        S[0].reshape((S[0].shape[0],     S[0].shape[1], -1)),
+        S[1][:, :, np.newaxis]),
+        axis=-1).mean(axis=0)
+    n_freqs, n_paths = S.shape
+    sx = np.zeros((n_samples, n_freqs, n_paths))
+
+    for i in tqdm.tqdm(range(n_samples)):
+        S = auditory.strf(X[i], audio_fs=sr, duration=duration)
+        S = np.concatenate((
+            S[0].reshape((S[0].shape[0], S[0].shape[1], -1)),
+            S[1][:, :, np.newaxis]),
+            axis=-1).mean(axis=0)
+        sx[i, :] = S
+
+    return sx.reshape((sx.shape[0], -1))
 
 
 def plot_isomap(Y, cmap, out_dir):
@@ -171,7 +192,9 @@ def run_isomap(
 
 
     out_dir = os.getcwd() + out_dir
-    os.makedirs(out_dir, exist_ok=True)
+
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
 
     f0s = np.logspace(np.log10(f0_min), np.log10(f0_max), n_steps)
     fms = np.logspace(np.log10(fm_min), np.log10(fm_max), n_steps)
@@ -179,13 +202,15 @@ def run_isomap(
     
     audio, cmap = generate_audio(f0s, fms, gammas, duration, sr)
 
-    ol3 = extract_openl3(audio.reshape(-1, audio.shape[-1]), sr)
+    # ol3 = extract_openl3(audio.reshape(-1, audio.shape[-1]), sr)
+    # mfcc = extract_mfcc(audio, f0s, fms, gammas, sr)
+    # ts = extract_time_scattering(audio.reshape(-1, audio.shape[-1]), duration, sr)
+    # jtfs = extract_jtfs(audio.reshape(-1, audio.shape[-1]), duration, sr)
+    
+    strf = extract_strf(audio.reshape(-1, audio.shape[-1]), duration, sr)
 
-    mfcc = extract_mfcc(audio, f0s, fms, gammas, sr)
-    ts = extract_time_scattering(audio.reshape(-1, audio.shape[-1]), duration, sr)
-    jtfs = extract_jtfs(audio.reshape(-1, audio.shape[-1]), duration, sr)
-
-    X = {"mfcc": mfcc, "ts": ts, "jtfs": jtfs, "ol3": ol3}
+    # X = {"mfcc": mfcc, "ts": ts, "jtfs": jtfs, "ol3": ol3}
+    X = {"strf": strf}
 
     run_isomaps(X, cmap, out_dir)
 
