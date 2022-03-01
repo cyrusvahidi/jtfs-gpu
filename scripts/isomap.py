@@ -1,7 +1,11 @@
-import os 
+import os
 import fire, tqdm
 import numpy as np, matplotlib.pyplot as plt, scipy
 import librosa, librosa.feature, librosa.display
+import torch
+
+import openl3
+from kymatio.torch import Scattering1D, TimeFrequencyScattering1D
 
 from sklearn.manifold import Isomap
 
@@ -50,19 +54,54 @@ def extract_mfcc(audio, f0s, fms, gammas, sr, n_mfcc = 20):
     return mfcc.reshape(-1, mfcc.shape[-1])
 
 
-def extract_time_scattering(audio, f0s, fms, gammas, sr, **ts_kwargs):
-    pass
+def extract_time_scattering(audio, duration, sr, **ts_kwargs):
+    N = duration * sr
+    scat = Scattering1D(shape=(N, ),
+                        T=N,
+                        Q=8,
+                        J=12).cuda()
+    
+    X = torch.tensor(audio).cuda()
+    n_samples = X.shape[0]
+    n_paths = scat(X[0]).shape[0]
+
+    sx = torch.zeros(n_samples, n_paths)
+
+    for i in tqdm.tqdm(range(n_samples)):
+        sx[i, :] = scat(X[i, :])[:, 0]
+    return sx.cpu().numpy()
 
 
-def extract_jtfs(audio, f0s, fms, gammas, sr, **jtfs_kwargs):
-    pass
+def extract_jtfs(audio, duration, sr, **jtfs_kwargs):
+    N = duration * sr
+    jtfs = TimeFrequencyScattering1D(
+        shape=(N, ),
+        T=N,
+        Q=8,
+        J=12,
+        max_pad_factor=1, 
+        max_pad_factor_fr=1).cuda()
+    X = torch.tensor(audio).cuda()
+    n_samples, n_paths = X.shape[0], jtfs(X[0]).shape[1]
+    sx = torch.zeros(n_samples, n_paths)
+
+    for i in tqdm.tqdm(range(n_samples)):
+        sx[i, :] = jtfs(X[i, :])[:, :, 0]
+
+    return sx.cpu().numpy()
 
 
-def extract_openl3(audio, f0s, fms, gammas, sr, **ol3_kwargs):
-    pass
+def extract_openl3(audio, sr, **ol3_kwargs):
+    X_ol3, _ = openl3.get_audio_embedding(
+        list(audio), 
+        sr, 
+        batch_size=32,
+        frontend='kapre',
+        content_type='music')
+    return np.stack(X_ol3).mean(axis=1)
 
 
-def extract_strf(audio, f0s, fms, gammas, sr, **strf_kwargs):
+def extract_strf(audio, sr, **strf_kwargs):
     pass
 
 
@@ -139,9 +178,14 @@ def run_isomap(
     gammas = np.logspace(np.log10(gamma_min), np.log10(gamma_max), n_steps)
     
     audio, cmap = generate_audio(f0s, fms, gammas, duration, sr)
-    mfcc = extract_mfcc(audio, f0s, fms, gammas, sr)
 
-    X = {"mfcc": mfcc}
+    ol3 = extract_openl3(audio.reshape(-1, audio.shape[-1]), sr)
+
+    mfcc = extract_mfcc(audio, f0s, fms, gammas, sr)
+    ts = extract_time_scattering(audio.reshape(-1, audio.shape[-1]), duration, sr)
+    jtfs = extract_jtfs(audio.reshape(-1, audio.shape[-1]), duration, sr)
+
+    X = {"mfcc": mfcc, "ts": ts, "jtfs": jtfs, "ol3": ol3}
 
     run_isomaps(X, cmap, out_dir)
 
