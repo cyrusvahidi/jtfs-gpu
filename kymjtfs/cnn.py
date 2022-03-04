@@ -17,7 +17,7 @@ from kymjtfs.batch_norm import ScatteringBatchNorm
 
 
 class MedleySolosClassifier(LightningModule):
-    def __init__(self, in_shape = 2**16, J = 12, Q = 16, F = 4, T = 2**11, lr=1e-3, average='micro'):
+    def __init__(self, in_shape = 2**16, J = 12, Q = 16, F = 4, T = 2**11, lr=1e-3, average='macro'):
         super().__init__()
 
         self.in_shape = in_shape
