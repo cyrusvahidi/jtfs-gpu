@@ -41,6 +41,10 @@ jupyter notebook
 #### Scale-Rate Visualisations
 
 #### Synthetic amplitude-modulated chirp dataset
+* Factors of variation: 
+ * $f_c$ carrier frequency
+ * $f_m$ amplitude modulation frequency
+ * $\gamma$ chirp rate
 
 #### Manifold Embedding of the Nearest Neighbour Graph
 * MFCCs
@@ -49,7 +53,7 @@ jupyter notebook
 * Open-L3
 * Spectrotemporal Receptive Field (STRF)
 
-#### K-NN regression of f0, chirp rate and tremolo rate
+#### K-NN regression of synthesizer parameters
 
 #### 2-D CNN classifier
 
