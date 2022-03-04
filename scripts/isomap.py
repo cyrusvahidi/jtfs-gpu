@@ -176,7 +176,6 @@ def run_isomaps(X, cmap, out_dir):
         ])
 
 
-
 def run_isomap(
     n_steps = 16,
     f0_min = 512, 
