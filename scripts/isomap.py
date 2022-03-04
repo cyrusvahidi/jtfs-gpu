@@ -58,7 +58,7 @@ def extract_time_scattering(audio, duration, sr, **ts_kwargs):
     N = duration * sr
     scat = Scattering1D(shape=(N, ),
                         T=N,
-                        Q=8,
+                        Q=1,
                         J=12).cuda()
     
     X = torch.tensor(audio).cuda()
@@ -202,15 +202,13 @@ def run_isomap(
     
     audio, cmap = generate_audio(f0s, fms, gammas, duration, sr)
 
-    # ol3 = extract_openl3(audio.reshape(-1, audio.shape[-1]), sr)
-    # mfcc = extract_mfcc(audio, f0s, fms, gammas, sr)
-    # ts = extract_time_scattering(audio.reshape(-1, audio.shape[-1]), duration, sr)
-    # jtfs = extract_jtfs(audio.reshape(-1, audio.shape[-1]), duration, sr)
-    
+    mfcc = extract_mfcc(audio, f0s, fms, gammas, sr)
+    ts = extract_time_scattering(audio.reshape(-1, audio.shape[-1]), duration, sr)
+    jtfs = extract_jtfs(audio.reshape(-1, audio.shape[-1]), duration, sr)    
+    ol3 = extract_openl3(audio.reshape(-1, audio.shape[-1]), sr)
     strf = extract_strf(audio.reshape(-1, audio.shape[-1]), duration, sr)
 
-    # X = {"mfcc": mfcc, "ts": ts, "jtfs": jtfs, "ol3": ol3}
-    X = {"strf": strf}
+    X = {"mfcc": mfcc, "ts": ts, "jtfs": jtfs, "ol3": ol3, "strf": strf}
 
     run_isomaps(X, cmap, out_dir)
 
