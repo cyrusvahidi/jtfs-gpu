@@ -15,6 +15,8 @@ from kymatio.torch import TimeFrequencyScattering1D
 
 from kymjtfs.batch_norm import ScatteringBatchNorm
 
+from joblib import Memory
+
 
 class MedleySolosClassifier(LightningModule):
     def __init__(self, in_shape = 2**16, J = 12, Q = 16, F = 4, T = 2**11, lr=1e-3, average='macro'):
@@ -173,6 +175,7 @@ class MedleySolosDB(Dataset):
         subset = df_item['subset']
         return f'Medley-solos-DB_{subset}-{instr_id}_{uuid}.wav'
 
+    @memory.cache
     def __getitem__(self, idx):
         item = self.df.iloc[idx]
         audio_fname = self.build_audio_fname(item)
@@ -182,7 +185,7 @@ class MedleySolosDB(Dataset):
         return audio, y
 
     def __len__(self):
-        return len(self.df) // 100
+        return len(self.df)
         
 
 class MedleyDataModule(pl.LightningDataModule):
