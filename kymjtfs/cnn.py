@@ -17,8 +17,6 @@ from kymjtfs.batch_norm import ScatteringBatchNorm
 
 from joblib import Memory
 
-cachedir = '/import/c4dm-04/cv'
-memory = Memory(cachedir, verbose=0)
 
 class MedleySolosClassifier(LightningModule):
     def __init__(self, 
@@ -89,7 +87,7 @@ class MedleySolosClassifier(LightningModule):
     
         
     def step(self, batch, fold):
-        Sx, y, _ = batch
+        Sx, y = batch
         logits = self(Sx)
 
         loss, acc = F.nll_loss(logits, y), self.acc_metric(logits, y)
@@ -155,6 +153,9 @@ class MedleySolosDB(Dataset):
         self.df = df.loc[df['subset'] == subset]
         self.df.reset_index(inplace = True)
 
+        cachedir = '/import/c4dm-04/cv'
+        self.memory = Memory(cachedir, verbose=0)
+
         
     def build_audio_fname(self, df_item):
         uuid = df_item['uuid4']
@@ -162,19 +163,24 @@ class MedleySolosDB(Dataset):
         subset = df_item['subset']
         return f'Medley-solos-DB_{subset}-{instr_id}_{uuid}.wav'
 
-    @memory.cache
     def __getitem__(self, idx):
         item = self.df.iloc[idx]
         audio_fname = self.build_audio_fname(item)
         audio, _ = msdb.load_audio(os.path.join(self.audio_dir, audio_fname))
-        Sx = self.jtfs(audio)
+
+        Sx = self.memory.cache(load_jtfs(self, audio))
+        # Sx = self.jtfs(audio)
         y = int(item['instrument_id'])
         
-        return Sx, y, audio
+        return Sx, y
 
     def __len__(self):
         return len(self.df)
-        
+
+
+def load_jtfs(msdb_dataset, audio):
+    return msbd_dataset.jtfs(audio)
+
 
 class MedleyDataModule(pl.LightningDataModule):
     def __init__(self, 
@@ -192,10 +198,10 @@ class MedleyDataModule(pl.LightningDataModule):
         self.test_ds = MedleySolosDB(self.jtfs, self.data_dir, subset='test')
 
     def train_dataloader(self):
-        return DataLoader(self.train_ds, batch_size=self.batch_size, shuffle=True, drop_last=True, num_workers=80)
+        return DataLoader(self.train_ds, batch_size=self.batch_size, shuffle=True, drop_last=True)
 
     def val_dataloader(self):
-        return DataLoader(self.val_ds, batch_size=self.batch_size, shuffle=False, drop_last=True, num_workers=80)
+        return DataLoader(self.val_ds, batch_size=self.batch_size, shuffle=False, drop_last=True)
 
     def test_dataloader(self):
-        return DataLoader(self.test_ds, batch_size=self.batch_size, shuffle=False, drop_last=True, num_workers=80)
+        return DataLoader(self.test_ds, batch_size=self.batch_size, shuffle=False, drop_last=True)
