@@ -4,6 +4,7 @@ import pytorch_lightning as pl, fire
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.loggers import WandbLogger
 
 from joblib import Memory
 
@@ -17,13 +18,15 @@ def run_train(n_epochs = 200,
                                         patience=5, 
                                         verbose=False, 
                                         mode="max")
+    wandb_logger = WandbLogger()
     trainer = pl.Trainer(gpus=-1, 
                         max_epochs=n_epochs,
                         progress_bar_refresh_rate=1, 
                         checkpoint_callback=True,
                         callbacks=[early_stop_callback],
                         fast_dev_run=True,
-                        overfit_batches=5)
+                        overfit_batches=5,
+                        logger=wandb_logger)
     model = MedleySolosClassifier()
     dataset = MedleyDataModule(batch_size=batch_size, jtfs=model.jtfs) 
     trainer.fit(model, dataset)
