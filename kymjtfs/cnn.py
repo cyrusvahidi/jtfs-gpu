@@ -17,6 +17,8 @@ from kymjtfs.batch_norm import ScatteringBatchNorm
 
 from joblib import Memory
 
+cachedir = '/import/c4dm-04/cv'
+memory = Memory(cachedir, verbose=0)
 
 class MedleySolosClassifier(LightningModule):
     def __init__(self, 
