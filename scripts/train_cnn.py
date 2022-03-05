@@ -14,7 +14,7 @@ def run_train(n_epochs = 200,
   
     early_stop_callback = EarlyStopping(monitor="val/loss", 
                                         min_delta=0.00, 
-                                        patience=3, 
+                                        patience=5, 
                                         verbose=False, 
                                         mode="max")
     trainer = pl.Trainer(gpus=-1, 
@@ -22,7 +22,8 @@ def run_train(n_epochs = 200,
                         progress_bar_refresh_rate=1, 
                         checkpoint_callback=True,
                         callbacks=[early_stop_callback])
-    model, dataset = MedleySolosClassifier(), MedleyDataModule(batch_size=batch_size) 
+    dataset = MedleyDataModule(batch_size=batch_size) 
+    model = MedleySolosClassifier()
     trainer.fit(model, dataset)
     trainer.test(model, dataset)
 
