@@ -80,8 +80,8 @@ class MedleySolosClassifier(LightningModule):
     
         
     def step(self, batch, fold):
-        x, y = batch
-        logits = self(x)
+        Sx, y, _ = batch
+        logits = self(Sx)
 
         loss, acc = F.nll_loss(logits, y), self.acc_metric(logits, y)
         
@@ -118,6 +118,7 @@ class MedleySolosClassifier(LightningModule):
         out_dim = S.shape[1:3]
         return out_dim
     
+
 class Unsqueeze(nn.Module):
     def __init__(self, dim=1):
         super(Unsqueeze, self).__init__()
@@ -131,12 +132,7 @@ class MedleySolosDB(Dataset):
     def __init__(self, 
                  data_dir='/import/c4dm-datasets/medley-solos-db/', 
                  subset='training',
-                 jtfs_kwargs={
-                     'in_shape': 2**16, 
-                     'J': 12, 
-                     'Q': 16, 
-                     'F': 4, 
-                     'T': 2**11},):
+                 jtfs,):
         super().__init__()
         
         self.msdb = msdb.Dataset(data_dir)
@@ -144,30 +140,12 @@ class MedleySolosDB(Dataset):
         self.csv_dir = os.path.join(data_dir, 'annotation')
         self.subset = subset
 
+        self.jtfs = jtfs
+
         df = pd.read_csv(os.path.join(self.csv_dir, 'Medley-solos-DB_metadata.csv'))
         self.df = df.loc[df['subset'] == subset]
         self.df.reset_index(inplace = True)
 
-        # self.jtfs_kwargs = jtfs_kwargs
-        # self.setup_jtfs()
-
-    def setup_jtfs(self):
-        self.jtfs = TimeFrequencyScattering1D(
-            shape=(self.jtfs_kwargs['in_shape'], ),
-            T=self.jtfs_kwargs['T'],
-            Q=self.jtfs_kwargs['Q'],
-            J=self.jtfs_kwargs['J'],
-            F=self.jtfs_kwargs['F'],
-            average_fr=True,
-            max_pad_factor=1, 
-            max_pad_factor_fr=1,
-            out_3D=True,)
-        
-        n_channels = self._get_jtfs_out_dim()
-        
-        self.jtfs_dim = self._get_jtfs_out_dim()
-        self.jtfs_channels = self.jtfs_dim[0]
-        self.jtfs_bn = ScatteringBatchNorm(self.jtfs_dim)
         
     def build_audio_fname(self, df_item):
         uuid = df_item['uuid4']
@@ -180,9 +158,10 @@ class MedleySolosDB(Dataset):
         item = self.df.iloc[idx]
         audio_fname = self.build_audio_fname(item)
         audio, _ = msdb.load_audio(os.path.join(self.audio_dir, audio_fname))
+        Sx = self.jtfs(audio)
         y = int(item['instrument_id'])
         
-        return audio, y
+        return Sx, y, audio
 
     def __len__(self):
         return len(self.df)
