@@ -19,7 +19,14 @@ from joblib import Memory
 
 
 class MedleySolosClassifier(LightningModule):
-    def __init__(self, in_shape = 2**16, J = 12, Q = 16, F = 4, T = 2**11, lr=1e-3, average='macro'):
+    def __init__(self, 
+                 in_shape = 2**16, 
+                 J = 12, 
+                 Q = 16, 
+                 F = 4, 
+                 T = 2**11, 
+                 lr=1e-3, 
+                 average='macro'):
         super().__init__()
 
         self.in_shape = in_shape
@@ -130,9 +137,9 @@ class Unsqueeze(nn.Module):
 
 class MedleySolosDB(Dataset):
     def __init__(self, 
+                 jtfs,
                  data_dir='/import/c4dm-datasets/medley-solos-db/', 
-                 subset='training',
-                 jtfs,):
+                 subset='training'):
         super().__init__()
         
         self.msdb = msdb.Dataset(data_dir)
@@ -169,18 +176,18 @@ class MedleySolosDB(Dataset):
 
 class MedleyDataModule(pl.LightningDataModule):
     def __init__(self, 
+                 jtfs,
                  data_dir: str = '/import/c4dm-datasets/medley-solos-db/', 
-                 batch_size: int = 32, 
-                 jtfs):
+                 batch_size: int = 32):
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.jtfs = jtfs
 
     def setup(self, stage: Optional[str] = None):
-        self.train_ds = MedleySolosDB(self.data_dir, subset='training', jtfs=self.jtfs)
-        self.val_ds = MedleySolosDB(self.data_dir, subset='validation', jtfs=self.jtfs)
-        self.test_ds = MedleySolosDB(self.data_dir, subset='test', jtfs=self.jtfs)
+        self.train_ds = MedleySolosDB(self.jtfs, self.data_dir, subset='training')
+        self.val_ds = MedleySolosDB(self.jtfs, self.data_dir, subset='validation')
+        self.test_ds = MedleySolosDB(self.jtfs, self.data_dir, subset='test')
 
     def train_dataloader(self):
         return DataLoader(self.train_ds, batch_size=self.batch_size, shuffle=True, drop_last=True, num_workers=80)

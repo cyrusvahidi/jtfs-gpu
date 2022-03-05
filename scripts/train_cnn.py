@@ -18,7 +18,7 @@ def run_train(n_epochs = 200,
                                         patience=5, 
                                         verbose=False, 
                                         mode="max")
-    wandb_logger = WandbLogger()
+    wandb_logger = WandbLogger('jtfs_dafx')
     trainer = pl.Trainer(gpus=-1, 
                         max_epochs=n_epochs,
                         progress_bar_refresh_rate=1, 
@@ -28,7 +28,7 @@ def run_train(n_epochs = 200,
                         overfit_batches=5,
                         logger=wandb_logger)
     model = MedleySolosClassifier()
-    dataset = MedleyDataModule(batch_size=batch_size, jtfs=model.jtfs) 
+    dataset = MedleyDataModule(jtfs=model.jtfs, batch_size=batch_size) 
     trainer.fit(model, dataset)
     trainer.test(model, dataset)
 
