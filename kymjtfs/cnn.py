@@ -179,7 +179,7 @@ class MedleySolosDB(Dataset):
 
 
 def load_jtfs(msdb_dataset, audio):
-    return msbd_dataset.jtfs(audio)
+    return msdb_dataset.jtfs(audio)
 
 
 class MedleyDataModule(pl.LightningDataModule):
