@@ -6,12 +6,9 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import WandbLogger
 
-from joblib import Memory
 
 def run_train(n_epochs = 200, 
-              batch_size = 4, 
-              cachedir='/import/c4dm-04/cv'):
-    memory = Memory(cachedir, verbose=0)
+              batch_size = 4):
   
     early_stop_callback = EarlyStopping(monitor="val/loss", 
                                         min_delta=0.00, 
