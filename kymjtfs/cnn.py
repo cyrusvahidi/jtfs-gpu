@@ -72,9 +72,9 @@ class MedleySolosClassifier(LightningModule):
         self.jtfs_bn = ScatteringBatchNorm(self.jtfs_dim)
         
     def forward(self, x):
-        Sx = self.jtfs(x)
+        Sx = x
         
-        s1, s2 = Sx[0], Sx[1]
+        s1, s2 = Sx[0].squeeze(1), Sx[1].squeeze(1)
         s1_conv = self.s1_conv1(s1)
         s1_conv = F.pad(s1_conv, 
                    (0, 0, s2.shape[-2] - s1_conv.shape[-2], 0))
@@ -153,8 +153,8 @@ class MedleySolosDB(Dataset):
         self.df = df.loc[df['subset'] == subset]
         self.df.reset_index(inplace = True)
 
-        cachedir = '/import/c4dm-04/cv'
-        self.memory = Memory(cachedir, verbose=0)
+        # cachedir = '/import/c4dm-04/cv'
+        # self.memory = Memory(cachedir, verbose=0)
 
         
     def build_audio_fname(self, df_item):
@@ -168,7 +168,8 @@ class MedleySolosDB(Dataset):
         audio_fname = self.build_audio_fname(item)
         audio, _ = msdb.load_audio(os.path.join(self.audio_dir, audio_fname))
 
-        Sx = self.memory.cache(load_jtfs(self, audio))
+        # load_jtfs = self.memory.cache(_load_jtfs)
+        Sx = _load_jtfs(self.jtfs, audio)
         # Sx = self.jtfs(audio)
         y = int(item['instrument_id'])
         
@@ -178,8 +179,8 @@ class MedleySolosDB(Dataset):
         return len(self.df)
 
 
-def load_jtfs(msdb_dataset, audio):
-    return msdb_dataset.jtfs(audio)
+def _load_jtfs(jtfs, audio):
+    return jtfs(audio)
 
 
 class MedleyDataModule(pl.LightningDataModule):
