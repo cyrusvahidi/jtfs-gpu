@@ -21,7 +21,9 @@ def run_train(n_epochs = 200,
                         progress_bar_refresh_rate=1, 
                         enable_checkpointing=True,
                         callbacks=[early_stop_callback],
-                        logger=wandb_logger)
+                        logger=wandb_logger,
+                        fast_dev_run=True,
+                        overfit_batches=10)
     model = MedleySolosClassifier()
     dataset = MedleyDataModule(jtfs=model.jtfs, batch_size=batch_size) 
     trainer.fit(model, dataset)
