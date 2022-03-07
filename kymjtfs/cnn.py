@@ -11,7 +11,7 @@ import pytorch_lightning as pl
 import mirdata.datasets.medley_solos_db as msdb
 from efficientnet_pytorch.model import EfficientNet
 
-from kymatio.torch import TimeFrequencyScattering1D
+from kymatio.torch import TimeFrequencyScatteringTorch1D as TimeFrequencyScattering1D
 
 from kymjtfs.batch_norm import ScatteringBatchNorm
 
@@ -25,7 +25,7 @@ class MedleySolosClassifier(LightningModule):
                  Q = 16, 
                  F = 4, 
                  T = 2**11, 
-                 lr=1e-3, 
+                 lr=5e-4, 
                  average='macro'):
         super().__init__()
 
@@ -114,7 +114,8 @@ class MedleySolosClassifier(LightningModule):
     
     def configure_optimizers(self):
         opt = torch.optim.Adam(self.parameters(), lr=self.lr)
-        return opt
+        scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.9)
+        return opt, scheduler
     
     def _get_jtfs_out_dim(self):
         dummy_in = torch.randn(self.in_shape).cuda()
@@ -153,8 +154,8 @@ class MedleySolosDB(Dataset):
         self.df = df.loc[df['subset'] == subset]
         self.df.reset_index(inplace = True)
 
-        # cachedir = '/import/c4dm-04/cv'
-        # self.memory = Memory(cachedir, verbose=0)
+        cachedir = '/import/c4dm-04/cv'
+        self.memory = Memory(cachedir, verbose=0)
 
         
     def build_audio_fname(self, df_item):
@@ -168,8 +169,8 @@ class MedleySolosDB(Dataset):
         audio_fname = self.build_audio_fname(item)
         audio, _ = msdb.load_audio(os.path.join(self.audio_dir, audio_fname))
 
-        # load_jtfs = self.memory.cache(_load_jtfs)
-        Sx = _load_jtfs(self.jtfs, audio)
+        load_jtfs = self.memory.cache(_load_jtfs)
+        Sx = load_jtfs(self.jtfs, audio)
         # Sx = self.jtfs(audio)
         y = int(item['instrument_id'])
         
