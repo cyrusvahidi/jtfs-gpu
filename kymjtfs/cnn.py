@@ -16,7 +16,9 @@ from kymatio.torch import TimeFrequencyScatteringTorch1D as TimeFrequencyScatter
 from kymjtfs.batch_norm import ScatteringBatchNorm
 
 from joblib import Memory
+from joblib.externals.loky import set_loky_pickler
 
+set_loky_pickler("dill")
 
 class MedleySolosClassifier(LightningModule):
     def __init__(self, 
@@ -115,7 +117,7 @@ class MedleySolosClassifier(LightningModule):
     def configure_optimizers(self):
         opt = torch.optim.Adam(self.parameters(), lr=self.lr)
         scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.9)
-        return opt, scheduler
+        return [opt], [scheduler]
     
     def _get_jtfs_out_dim(self):
         dummy_in = torch.randn(self.in_shape).cuda()
