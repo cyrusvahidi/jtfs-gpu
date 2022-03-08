@@ -154,8 +154,8 @@ class MedleySolosDB(Dataset):
         self.df = df.loc[df['subset'] == subset]
         self.df.reset_index(inplace = True)
 
-        cachedir = '/import/c4dm-04/cv'
-        self.memory = Memory(cachedir, verbose=0)
+        # cachedir = '/import/c4dm-04/cv'
+        # self.memory = Memory(cachedir, verbose=0)
 
         
     def build_audio_fname(self, df_item):
@@ -169,9 +169,9 @@ class MedleySolosDB(Dataset):
         audio_fname = self.build_audio_fname(item)
         audio, _ = msdb.load_audio(os.path.join(self.audio_dir, audio_fname))
 
-        load_jtfs = self.memory.cache(_load_jtfs)
-        Sx = load_jtfs(self.jtfs, audio)
-        # Sx = self.jtfs(audio)
+        # load_jtfs = self.memory.cache(_load_jtfs)
+        # Sx = load_jtfs(self.jtfs, audio)
+        Sx = self.jtfs(audio)
         y = int(item['instrument_id'])
         
         return Sx, y
