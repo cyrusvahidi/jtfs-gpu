@@ -6,6 +6,9 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import WandbLogger
 
+import warnings
+
+warnings.filterwarnings("ignore")
 
 def run_train(n_epochs = 200, 
               batch_size = 4):
@@ -14,7 +17,7 @@ def run_train(n_epochs = 200,
                                         patience=5, 
                                         verbose=False, 
                                         mode="max")
-    wandb_logger = WandbLogger()
+    wandb_logger = WandbLogger(entity="joint")
     trainer = pl.Trainer(gpus=-1, 
                         max_epochs=n_epochs,
                         progress_bar_refresh_rate=1, 
