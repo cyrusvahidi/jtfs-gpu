@@ -11,7 +11,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 def run_train(n_epochs = 200, 
-              batch_size = 4):
+              batch_size = 32):
     early_stop_callback = EarlyStopping(monitor="val/loss", 
                                         min_delta=0.00, 
                                         patience=5, 
