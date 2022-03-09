@@ -138,7 +138,7 @@ class Unsqueeze(nn.Module):
 
 class MedleySolosDB(Dataset):
     def __init__(self, 
-                 jtfs,
+                 jtfs=None,
                  data_dir='/import/c4dm-datasets/medley-solos-db/', 
                  subset='training'):
         super().__init__()
@@ -156,7 +156,6 @@ class MedleySolosDB(Dataset):
 
         # cachedir = '/import/c4dm-04/cv'
         # self.memory = Memory(cachedir, verbose=0)
-
         
     def build_audio_fname(self, df_item):
         uuid = df_item['uuid4']
@@ -171,10 +170,13 @@ class MedleySolosDB(Dataset):
 
         # load_jtfs = self.memory.cache(_load_jtfs)
         # Sx = load_jtfs(self.jtfs, audio)
-        Sx = self.jtfs(audio)
+        if self.jtfs is None:
+            x = audio
+        else:
+            x = self.jtfs(audio)
         y = int(item['instrument_id'])
         
-        return Sx, y
+        return x, y, audio_fname
 
     def __len__(self):
         return len(self.df)
@@ -186,9 +188,9 @@ def _load_jtfs(jtfs, audio):
 
 class MedleyDataModule(pl.LightningDataModule):
     def __init__(self, 
-                 jtfs,
                  data_dir: str = '/import/c4dm-datasets/medley-solos-db/', 
-                 batch_size: int = 32):
+                 batch_size: int = 32,
+                 jtfs=None,):
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
