@@ -5,7 +5,7 @@ import librosa, librosa.feature, librosa.display
 import torch
 
 import openl3
-from kymatio.torch import Scattering1D, TimeFrequencyScattering1D
+# from kymatio.torch import Scattering1D, TimeFrequencyScattering1D
 
 from sklearn.manifold import Isomap
 
@@ -201,10 +201,10 @@ def run_isomap(
     
     audio, cmap = generate_audio(f0s, fms, gammas, duration, sr)
 
-    mfcc = extract_mfcc(audio, f0s, fms, gammas, sr)
-    ts = extract_time_scattering(audio.reshape(-1, audio.shape[-1]), duration, sr)
-    jtfs = extract_jtfs(audio.reshape(-1, audio.shape[-1]), duration, sr)    
-    ol3 = extract_openl3(audio.reshape(-1, audio.shape[-1]), sr)
+    # mfcc = extract_mfcc(audio, f0s, fms, gammas, sr)
+    # ts = extract_time_scattering(audio.reshape(-1, audio.shape[-1]), duration, sr)
+    # jtfs = extract_jtfs(audio.reshape(-1, audio.shape[-1]), duration, sr)    
+    # ol3 = extract_openl3(audio.reshape(-1, audio.shape[-1]), sr)
     strf = extract_strf(audio.reshape(-1, audio.shape[-1]), duration, sr)
 
     X = {"mfcc": mfcc, "ts": ts, "jtfs": jtfs, "ol3": ol3, "strf": strf}
