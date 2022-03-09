@@ -20,7 +20,7 @@ class ScatteringBatchNorm(nn.Module):
         self.path_shape = path_shape
 
         self.register_buffer("mu", torch.zeros(self.path_shape))
-        self.register_parameter("c", torch.full(self.path_shape, 1e-3))
+        self.register_buffer("c", torch.full(self.path_shape, 1e-3))
 
     def _check_input_dim(self, x):
         if x.shape[1:3] != self.path_shape:
