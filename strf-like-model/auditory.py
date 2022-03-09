@@ -163,6 +163,7 @@ def strf(wavtemp,
     # nfft_scale = nfft_fac * 2**utils.nextpow2(stft.shape[1])
     mod_scale, phase_scale, _, _ = features.spectrum2scaletime(
         auditory_spectrogram_, **strf_args)
+    import pdb; pdb.set_trace()
 
     # Scales vs. Time => Scales vs. Rates
     # nfft_rate = nfft_fac * 2**utils.nextpow2(stft.shape[0])

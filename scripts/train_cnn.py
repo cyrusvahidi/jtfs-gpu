@@ -15,9 +15,9 @@ def run_train(n_epochs = 200,
     early_stop_callback = EarlyStopping(monitor="val/loss", 
                                         min_delta=0.00, 
                                         patience=5, 
-                                        verbose=False, 
+                                        verbose=True, 
                                         mode="max")
-    wandb_logger = WandbLogger(entity="joint")
+    wandb_logger = WandbLogger()
     trainer = pl.Trainer(gpus=-1, 
                         max_epochs=n_epochs,
                         progress_bar_refresh_rate=1, 
