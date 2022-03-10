@@ -25,7 +25,7 @@ def run_train(n_epochs = 200,
                         callbacks=[early_stop_callback],
                         logger=wandb_logger)
     model = MedleySolosClassifier()
-    dataset = MedleyDataModule(jtfs=model.jtfs, batch_size=batch_size) 
+    dataset = MedleyDataModule(batch_size=batch_size) 
     trainer.fit(model, dataset)
     trainer.test(model, dataset)
 

@@ -20,39 +20,49 @@ from joblib import Memory
 
 class MedleySolosClassifier(LightningModule):
     def __init__(self, 
+                 c = 1e-3,
                  in_shape = 2**16, 
                  J = 12, 
                  Q = 16, 
                  F = 4, 
                  T = 2**11, 
                  lr=5e-4, 
-                 average='macro'):
+                 average='macro', 
+                 jtfs_dir='/import/c4dm-datasets/medley-solos-db/jtfs/'):
         super().__init__()
 
+        self.c = c
         self.in_shape = in_shape
         self.J = J
         self.Q = Q
         self.F = F
         self.T = T
-        
         self.lr = lr
+        self.acc_metric = torchmetrics.Accuracy(num_classes=8, average=average)
         
+
+        self.jtfs_dir = jtfs_dir
+        
+        # self.setup_jtfs()
+        
+        self.mu = torch.tensor(np.load(os.path.join(jtfs_dir, 'stats/mu.npy')))
+        s1_channels = 4
+        
+        self.n_channels = len(self.mu) + (s1_channels - 1)
+        
+        s1_channels = 4
         self.s1_conv1 = nn.Sequential(
-            Unsqueeze(1),
-            nn.Conv2d(1, 4, kernel_size=(16, 1)),
+            # Unsqueeze(1),
+            nn.Conv2d(1, s1_channels, kernel_size=(16, 1)),
             nn.ReLU(),
             nn.AvgPool2d(kernel_size=(4, 1), padding=(2, 0))
         )
-        
-        self.setup_jtfs()
-        
+        self.jtfs_bn = nn.BatchNorm2d(self.n_channels)
         self.conv_net = EfficientNet.from_name('efficientnet-b0',
-                                               in_channels=self.jtfs_channels,
+                                               in_channels=self.n_channels,
                                                include_top = True,
                                                num_classes = 8)
         
-        self.acc_metric = torchmetrics.Accuracy(num_classes=8, average=average)
-
     def setup_jtfs(self):
         self.jtfs = TimeFrequencyScattering1D(
             shape=(self.in_shape, ),
@@ -69,20 +79,30 @@ class MedleySolosClassifier(LightningModule):
         
         self.jtfs_dim = self._get_jtfs_out_dim()
         self.jtfs_channels = self.jtfs_dim[0]
-        self.jtfs_bn = ScatteringBatchNorm(self.jtfs_dim)
         
     def forward(self, x):
         Sx = x
-        
         s1, s2 = Sx[0].squeeze(1), Sx[1].squeeze(1)
-        s1_conv = self.s1_conv1(s1)
+
+        # apply mean normalization
+        s1 = s1 / (self.c * self.mu[:1].type_as(s1))
+        s2 = s2 / (self.c * self.mu[1:][None, :, None, None].type_as(s2))
+
+        # s1 learnable frequential filter
+        s1_conv = self.s1_conv1(s1.unsqueeze(1))
         s1_conv = F.pad(s1_conv, 
                    (0, 0, s2.shape[-2] - s1_conv.shape[-2], 0))
         
         sx = torch.cat([s1_conv, s2], dim=1)[:, :, :32, :]
-        sx = torch.log1p(self.jtfs_bn(sx))
+
+        # log1p and batch norm
+        sx = torch.log1p(sx)
+        sx = self.jtfs_bn(sx)
+
+        # conv net
         y = self.conv_net(sx)
         y = F.log_softmax(y, dim=1)
+
         return y
     
         
@@ -148,7 +168,9 @@ class MedleySolosDB(Dataset):
         self.audio_dir = os.path.join(data_dir, 'audio')
         self.csv_dir = os.path.join(data_dir, 'annotation')
         self.subset = subset
-        self.feature_dir = feature_dir
+        if feature_dir:
+            feature_dir = os.path.join(data_dir, feature_dir)
+            self.feature_dir = os.path.join(feature_dir, subset)
 
         self.jtfs = jtfs
 
@@ -174,20 +196,18 @@ class MedleySolosDB(Dataset):
         item = self.df.iloc[idx]
 
         fname = self.build_fname(item)
+        y = int(item['instrument_id'])
 
         if self.feature_dir:
-            feature_dir = os.path.join(data_dir, self.feature_dir)
             s1_fname, s2_fname = fname 
-            s1 = np.load(os.path.join(feature_dir, s1_fname))
-            s2 = np.load(os.path.join(feature_dir, s2_fname))
-            x = (s1, s2)
+            s1 = np.load(os.path.join(self.feature_dir, s1_fname))
+            s2 = np.load(os.path.join(self.feature_dir, s2_fname))
+            Sx = (s1, s2)
+            return Sx, y
         else:
             audio, _ = msdb.load_audio(os.path.join(self.audio_dir, fname))
             x = audio
-
-        y = int(item['instrument_id'])
-        
-        return x, y, audio_fname
+            return x, y, fname
 
     def __len__(self):
         return len(self.df)
