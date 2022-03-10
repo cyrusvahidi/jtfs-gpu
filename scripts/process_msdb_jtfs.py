@@ -71,7 +71,7 @@ class JTFSExtractor():
         np.save(os.path.join(stats_path, 'mu'), self.mu.cpu().numpy())
 
 
-def process_msdb_jtfs(output_dir='/import/c4dm-05/cv/msdb',
+def process_msdb_jtfs(output_dir='/import/c4dm-datasets/medley-solos-db/jtfs',
                       data_dir='/import/c4dm-datasets/medley-solos-db/',
                       jtfs_kwargs={
                         'shape': 2**16, 
