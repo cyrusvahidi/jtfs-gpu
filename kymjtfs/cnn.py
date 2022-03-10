@@ -140,13 +140,15 @@ class MedleySolosDB(Dataset):
     def __init__(self, 
                  jtfs=None,
                  data_dir='/import/c4dm-datasets/medley-solos-db/', 
-                 subset='training'):
+                 subset='training',
+                 feature_dir='jtfs'):
         super().__init__()
         
         self.msdb = msdb.Dataset(data_dir)
         self.audio_dir = os.path.join(data_dir, 'audio')
         self.csv_dir = os.path.join(data_dir, 'annotation')
         self.subset = subset
+        self.feature_dir = feature_dir
 
         self.jtfs = jtfs
 
@@ -157,23 +159,32 @@ class MedleySolosDB(Dataset):
         # cachedir = '/import/c4dm-04/cv'
         # self.memory = Memory(cachedir, verbose=0)
         
-    def build_audio_fname(self, df_item):
+    def build_fname(self, df_item, ext='.npy'):
         uuid = df_item['uuid4']
         instr_id = df_item['instrument_id']
         subset = df_item['subset']
-        return f'Medley-solos-DB_{subset}-{instr_id}_{uuid}.wav'
+        if self.feature_dir:
+            s1 = f'Medley-solos-DB_{subset}-{instr_id}_{uuid}_S1{ext}'
+            s2 = f'Medley-solos-DB_{subset}-{instr_id}_{uuid}_S2{ext}'
+            return s1, s2
+        else:
+            return f'Medley-solos-DB_{subset}-{instr_id}_{uuid}{ext}'
 
     def __getitem__(self, idx):
         item = self.df.iloc[idx]
-        audio_fname = self.build_audio_fname(item)
-        audio, _ = msdb.load_audio(os.path.join(self.audio_dir, audio_fname))
 
-        # load_jtfs = self.memory.cache(_load_jtfs)
-        # Sx = load_jtfs(self.jtfs, audio)
-        if self.jtfs is None:
-            x = audio
+        fname = self.build_fname(item)
+
+        if self.feature_dir:
+            feature_dir = os.path.join(data_dir, self.feature_dir)
+            s1_fname, s2_fname = fname 
+            s1 = np.load(os.path.join(feature_dir, s1_fname))
+            s2 = np.load(os.path.join(feature_dir, s2_fname))
+            x = (s1, s2)
         else:
-            x = self.jtfs(audio)
+            audio, _ = msdb.load_audio(os.path.join(self.audio_dir, fname))
+            x = audio
+
         y = int(item['instrument_id'])
         
         return x, y, audio_fname
