@@ -14,7 +14,7 @@ def run_train(n_epochs = 15,
               batch_size = 32):
     early_stop_callback = EarlyStopping(monitor="val/loss_epoch", 
                                         min_delta=0.00, 
-                                        patience=1, 
+                                        patience=5, 
                                         verbose=True, 
                                         mode="min")
     wandb_logger = WandbLogger()
