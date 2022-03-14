@@ -1,15 +1,16 @@
-import os, pandas as pd, numpy as np, torch, torchmetrics
+import os, pandas as pd, numpy as np, torch
 
 from typing import Optional, Union
 
 from torch.nn import functional as F
 from torch import nn
+import torchvision.models as models
+from torchmetrics import Accuracy, ClasswiseWrapper
 
 from torch.utils.data import Dataset, DataLoader
 from pytorch_lightning.core.lightning import LightningModule
 import pytorch_lightning as pl
 import mirdata.datasets.medley_solos_db as msdb
-from efficientnet_pytorch.model import EfficientNet
 
 from kymatio.torch import TimeFrequencyScatteringTorch1D as TimeFrequencyScattering1D
 
@@ -28,7 +29,15 @@ class MedleySolosClassifier(LightningModule):
                  T = 2**11, 
                  lr=5e-4, 
                  average='macro', 
-                 jtfs_dir='/import/c4dm-datasets/medley-solos-db/jtfs/'):
+                 jtfs_dir='/import/c4dm-datasets/medley-solos-db/jtfs/',
+                 classes=['clarinet', 
+                          'distorted electric guitar',
+                          'female singer',
+                          'flute',
+                          'piano',
+                          'tenor saxophone',
+                          'trumpet',
+                          'violin']):
         super().__init__()
 
         self.c = c
@@ -38,7 +47,9 @@ class MedleySolosClassifier(LightningModule):
         self.F = F
         self.T = T
         self.lr = lr
-        self.acc_metric = torchmetrics.Accuracy(num_classes=8, average=average)
+        self.acc_metric = Accuracy(num_classes=len(classes), average=average)
+        self.classwise_acc = ClasswiseWrapper(Accuracy(num_classes=len(classes), average=None), 
+                                                       labels=classes)
         
 
         self.jtfs_dir = jtfs_dir
@@ -58,11 +69,20 @@ class MedleySolosClassifier(LightningModule):
             nn.AvgPool2d(kernel_size=(4, 1), padding=(2, 0))
         )
         self.jtfs_bn = nn.BatchNorm2d(self.n_channels)
-        self.conv_net = EfficientNet.from_name('efficientnet-b0',
-                                               in_channels=self.n_channels,
-                                               include_top = True,
-                                               num_classes = 8)
         
+        self.setup_cnn(len(classes))
+                                                 
+        
+    def setup_cnn(self, num_classes):
+        self.conv_net = LeNet(num_classes, self.n_channels)
+        # self.conv_net = models.efficientnet_b0()
+        # # modify input channels 
+        # self.conv_net.features[0][0] = nn.Conv2d(self.n_channels, 
+        #                                          32, 
+        #                                          kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), 
+        #                                          bias=False)
+        # self.conv_net.classifier[1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)    
+
     def setup_jtfs(self):
         self.jtfs = TimeFrequencyScattering1D(
             shape=(self.in_shape, ),
@@ -102,7 +122,7 @@ class MedleySolosClassifier(LightningModule):
         # conv net
         y = self.conv_net(sx)
         y = F.log_softmax(y, dim=1)
-
+        
         return y
     
         
@@ -111,11 +131,15 @@ class MedleySolosClassifier(LightningModule):
         logits = self(Sx)
 
         loss, acc = F.nll_loss(logits, y), self.acc_metric(logits, y)
+        class_acc = self.classwise_acc(logits, y)
+        class_acc = {k: float(v.detach()) for k, v in class_acc.items()}
         
         self.log(f'{fold}/loss', loss, on_step=True, on_epoch=True, prog_bar=True)
         self.log(f'{fold}/acc', acc, on_step=True, on_epoch=True, prog_bar=True)
+        if fold == 'test':
+            self.log(f'{fold}/classwise', class_acc, on_step=True, on_epoch=True, prog_bar=True)
         
-        return {f'loss': loss, f'{fold}/acc': acc}
+        return {f'loss': loss, f'{fold}/acc': acc, f'{fold}/classwise': class_acc}
     
     def log_metrics(self, outputs, fold):
         keys = list(outputs[0].keys())
@@ -133,8 +157,8 @@ class MedleySolosClassifier(LightningModule):
         return self.step(batch, fold='test')
     
     def configure_optimizers(self):
-        opt = torch.optim.Adam(self.parameters(), lr=self.lr)
-        scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.9)
+        opt = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=5e-4)
+        scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.95)
         return [opt], [scheduler]
     
     def _get_jtfs_out_dim(self):
@@ -240,3 +264,27 @@ class MedleyDataModule(pl.LightningDataModule):
 
     def test_dataloader(self):
         return DataLoader(self.test_ds, batch_size=self.batch_size, shuffle=False, drop_last=True)
+
+class LeNet(nn.Module):
+    def __init__(self, num_classes, in_channels):
+        super().__init__()
+        self.feature_extractor = nn.Sequential(            
+            nn.Conv2d(in_channels=in_channels, out_channels=6, kernel_size=5, stride=1),
+            nn.ReLU(),
+            nn.AvgPool2d(kernel_size=2),
+            nn.Conv2d(in_channels=6, out_channels=16, kernel_size=5, stride=1),
+            nn.ReLU(),
+            nn.AvgPool2d(kernel_size=2),
+            nn.Conv2d(in_channels=16, out_channels=120, kernel_size=5, stride=1),
+            nn.ReLU()
+        )
+
+        self.classifier = nn.Sequential(
+            nn.Linear(in_features=120, out_features=84),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(in_features=84, out_features=num_classes),
+        )
+
+    def forward(self, x):
+        return self.classifier(self.feature_extractor(x).flatten(1))
