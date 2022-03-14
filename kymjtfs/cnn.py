@@ -37,7 +37,8 @@ class MedleySolosClassifier(LightningModule):
                           'piano',
                           'tenor saxophone',
                           'trumpet',
-                          'violin']):
+                          'violin'],
+                 csv='/import/c4dm-datasets/medley-solos-db/annotation/Medley-solos-DB_metadata.csv'):
         super().__init__()
 
         self.c = c
@@ -54,14 +55,11 @@ class MedleySolosClassifier(LightningModule):
 
         self.jtfs_dir = jtfs_dir
         
-        # self.setup_jtfs()
-        
         self.mu = torch.tensor(np.load(os.path.join(jtfs_dir, 'stats/mu.npy')))
         s1_channels = 4
         
         self.n_channels = len(self.mu) + (s1_channels - 1)
         
-        s1_channels = 4
         self.s1_conv1 = nn.Sequential(
             # Unsqueeze(1),
             nn.Conv2d(1, s1_channels, kernel_size=(16, 1)),
@@ -71,6 +69,8 @@ class MedleySolosClassifier(LightningModule):
         self.jtfs_bn = nn.BatchNorm2d(self.n_channels)
         
         self.setup_cnn(len(classes))
+
+        self.loss = nn.CrossEntropyLoss(weight=self.get_class_weight(csv))
                                                  
         
     def setup_cnn(self, num_classes):
@@ -99,6 +99,13 @@ class MedleySolosClassifier(LightningModule):
         
         self.jtfs_dim = self._get_jtfs_out_dim()
         self.jtfs_channels = self.jtfs_dim[0]
+
+    def get_class_weight(self, csv):
+        df = pd.read_csv(csv)
+        support = sorted(dict(df['instrument'].sort_values().value_counts()).items())
+        total = sum(count for _, count in support)
+        weight = [1  - (s / total) for _, s in support]
+        return torch.tensor(weight)
         
     def forward(self, x):
         Sx = x
@@ -121,7 +128,7 @@ class MedleySolosClassifier(LightningModule):
 
         # conv net
         y = self.conv_net(sx)
-        y = F.log_softmax(y, dim=1)
+        # y = F.log_softmax(y, dim=1)
         
         return y
     
