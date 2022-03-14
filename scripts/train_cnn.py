@@ -10,19 +10,20 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-def run_train(n_epochs = 200, 
+def run_train(n_epochs = 15, 
               batch_size = 32):
-    early_stop_callback = EarlyStopping(monitor="val/loss", 
+    early_stop_callback = EarlyStopping(monitor="val/loss_epoch", 
                                         min_delta=0.00, 
-                                        patience=5, 
+                                        patience=1, 
                                         verbose=True, 
-                                        mode="max")
+                                        mode="min")
     wandb_logger = WandbLogger()
     trainer = pl.Trainer(gpus=-1, 
                         max_epochs=n_epochs,
                         progress_bar_refresh_rate=1, 
                         enable_checkpointing=True,
                         callbacks=[early_stop_callback],
+                        # fast_dev_run=True,
                         logger=wandb_logger)
     model = MedleySolosClassifier()
     dataset = MedleyDataModule(batch_size=batch_size) 
