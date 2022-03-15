@@ -39,7 +39,8 @@ class MedleySolosClassifier(LightningModule):
                           'trumpet',
                           'violin'],
                  csv='/import/c4dm-datasets/medley-solos-db/annotation/Medley-solos-DB_metadata.csv',
-                 use_cqt=False):
+                 use_cqt=False,
+                 cache_dir='/import/c4dm-04/cv'):
         super().__init__()
 
         self.in_shape = in_shape
@@ -77,6 +78,8 @@ class MedleySolosClassifier(LightningModule):
         self.setup_cnn(len(classes))
 
         self.loss = nn.CrossEntropyLoss(weight=self.get_class_weight(csv))
+
+        self.memory = Memory(cachedir, verbose=0)
                                                  
         
     def setup_cnn(self, num_classes):
@@ -134,7 +137,8 @@ class MedleySolosClassifier(LightningModule):
             sx = torch.log1p(sx)
             sx = self.jtfs_bn(sx)
         else:
-            cqt = np.log1p(np.abs(librosa.cqt(x.cpu().numpy(), sr=44100, n_bins=96, hop_length=256)))
+            load_cqt = self.memory.cache(_load_cqt)
+            cqt = load_cqt(x.cpu().numpy())
             sx = F.avg_pool2d(torch.tensor(cqt).type_as(x), kernel_size=(3, 8))
             sx = sx.unsqueeze(1)
 
@@ -225,9 +229,6 @@ class MedleySolosDB(Dataset):
         df = pd.read_csv(os.path.join(self.csv_dir, 'Medley-solos-DB_metadata.csv'))
         self.df = df.loc[df['subset'] == subset]
         self.df.reset_index(inplace = True)
-
-        # cachedir = '/import/c4dm-04/cv'
-        # self.memory = Memory(cachedir, verbose=0)
         
     def build_fname(self, df_item, ext='.npy'):
         uuid = df_item['uuid4']
@@ -261,8 +262,8 @@ class MedleySolosDB(Dataset):
         return len(self.df)
 
 
-def _load_jtfs(jtfs, audio):
-    return jtfs(audio)
+def _load_cqt(x):
+    return np.log1p(np.abs(librosa.cqt(x, sr=44100, n_bins=96, hop_length=256)))
 
 
 class MedleyDataModule(pl.LightningDataModule):
