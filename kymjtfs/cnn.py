@@ -41,7 +41,6 @@ class MedleySolosClassifier(LightningModule):
                  csv='/import/c4dm-datasets/medley-solos-db/annotation/Medley-solos-DB_metadata.csv'):
         super().__init__()
 
-        self.c = c
         self.in_shape = in_shape
         self.J = J
         self.Q = Q
@@ -56,9 +55,8 @@ class MedleySolosClassifier(LightningModule):
         self.jtfs_dir = jtfs_dir
         
         self.mu = torch.tensor(np.load(os.path.join(jtfs_dir, 'stats/mu.npy')))
-        s1_channels = 4
         
-        self.n_channels = len(self.mu) + (s1_channels - 1)
+        s1_channels = 4
         
         self.s1_conv1 = nn.Sequential(
             # Unsqueeze(1),
@@ -66,11 +64,15 @@ class MedleySolosClassifier(LightningModule):
             nn.ReLU(),
             nn.AvgPool2d(kernel_size=(4, 1), padding=(2, 0))
         )
+        self.n_channels = len(self.mu) + (s1_channels - 1)
         self.jtfs_bn = nn.BatchNorm2d(self.n_channels)
         
         self.setup_cnn(len(classes))
 
         self.loss = nn.CrossEntropyLoss(weight=self.get_class_weight(csv))
+        
+        self.c = c 
+        self.eps = nn.Parameter(torch.randn(len(self.mu)))
                                                  
         
     def setup_cnn(self, num_classes):
@@ -111,8 +113,10 @@ class MedleySolosClassifier(LightningModule):
         s1, s2 = Sx[0].squeeze(1), Sx[1].squeeze(1)
 
         # apply mean normalization
-        s1 = s1 / (self.c * self.mu[:1].type_as(s1))
-        s2 = s2 / (self.c * self.mu[1:][None, :, None, None].type_as(s2))
+        c = (self.c * torch.exp(5 * torch.tanh(self.eps)))
+        # c = self.c
+        s1 = s1 / (c[None, :1, None] * self.mu[:1].type_as(s1) + 1e-8)
+        s2 = s2 / (c[None, 1:, None, None] * self.mu[1:][None, :, None, None].type_as(s2) + 1e-8)
 
         # s1 learnable frequential filter
         s1_conv = self.s1_conv1(s1.unsqueeze(1))
