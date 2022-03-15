@@ -1,4 +1,4 @@
-import os, pandas as pd, numpy as np, torch
+import os, pandas as pd, numpy as np, torch, librosa
 
 from typing import Optional, Union
 
@@ -38,7 +38,8 @@ class MedleySolosClassifier(LightningModule):
                           'tenor saxophone',
                           'trumpet',
                           'violin'],
-                 csv='/import/c4dm-datasets/medley-solos-db/annotation/Medley-solos-DB_metadata.csv'):
+                 csv='/import/c4dm-datasets/medley-solos-db/annotation/Medley-solos-DB_metadata.csv',
+                 use_cqt=False):
         super().__init__()
 
         self.in_shape = in_shape
@@ -47,32 +48,35 @@ class MedleySolosClassifier(LightningModule):
         self.F = F
         self.T = T
         self.lr = lr
+        self.use_cqt = use_cqt
         self.acc_metric = Accuracy(num_classes=len(classes), average=average)
         self.classwise_acc = ClasswiseWrapper(Accuracy(num_classes=len(classes), average=None), 
                                                        labels=classes)
         
+        if not use_cqt:
+            self.jtfs_dir = jtfs_dir
+            
+            self.mu = torch.tensor(np.load(os.path.join(jtfs_dir, 'stats/mu.npy')))
+            
+            s1_channels = 4
+            
+            self.s1_conv1 = nn.Sequential(
+                # Unsqueeze(1),
+                nn.Conv2d(1, s1_channels, kernel_size=(16, 1)),
+                nn.ReLU(),
+                nn.AvgPool2d(kernel_size=(4, 1), padding=(2, 0))
+            )
+            self.n_channels = len(self.mu) + (s1_channels - 1)
+            self.jtfs_bn = nn.BatchNorm2d(self.n_channels)
+            
+            self.c = c 
+            self.eps = nn.Parameter(torch.randn(len(self.mu)))
+        else:
+            self.n_channels = 1
 
-        self.jtfs_dir = jtfs_dir
-        
-        self.mu = torch.tensor(np.load(os.path.join(jtfs_dir, 'stats/mu.npy')))
-        
-        s1_channels = 4
-        
-        self.s1_conv1 = nn.Sequential(
-            # Unsqueeze(1),
-            nn.Conv2d(1, s1_channels, kernel_size=(16, 1)),
-            nn.ReLU(),
-            nn.AvgPool2d(kernel_size=(4, 1), padding=(2, 0))
-        )
-        self.n_channels = len(self.mu) + (s1_channels - 1)
-        self.jtfs_bn = nn.BatchNorm2d(self.n_channels)
-        
         self.setup_cnn(len(classes))
 
         self.loss = nn.CrossEntropyLoss(weight=self.get_class_weight(csv))
-        
-        self.c = c 
-        self.eps = nn.Parameter(torch.randn(len(self.mu)))
                                                  
         
     def setup_cnn(self, num_classes):
@@ -109,29 +113,33 @@ class MedleySolosClassifier(LightningModule):
         return torch.tensor(weight)
         
     def forward(self, x):
-        Sx = x
-        s1, s2 = Sx[0].squeeze(1), Sx[1].squeeze(1)
+        if not self.use_cqt:
+            Sx = x
+            s1, s2 = Sx[0].squeeze(1), Sx[1].squeeze(1)
 
-        # apply mean normalization
-        c = (self.c * torch.exp(5 * torch.tanh(self.eps)))
-        # c = self.c
-        s1 = s1 / (c[None, :1, None] * self.mu[:1].type_as(s1) + 1e-8)
-        s2 = s2 / (c[None, 1:, None, None] * self.mu[1:][None, :, None, None].type_as(s2) + 1e-8)
+            # apply mean normalization
+            c = (self.c * torch.exp(torch.tanh(self.eps)))
+            # c = self.c
+            s1 = s1 / (c[None, :1, None] * self.mu[:1].type_as(s1) + 1e-8)
+            s2 = s2 / (c[None, 1:, None, None] * self.mu[1:][None, :, None, None].type_as(s2) + 1e-8)
 
-        # s1 learnable frequential filter
-        s1_conv = self.s1_conv1(s1.unsqueeze(1))
-        s1_conv = F.pad(s1_conv, 
-                   (0, 0, s2.shape[-2] - s1_conv.shape[-2], 0))
-        
-        sx = torch.cat([s1_conv, s2], dim=1)[:, :, :32, :]
+            # s1 learnable frequential filter
+            s1_conv = self.s1_conv1(s1.unsqueeze(1))
+            s1_conv = F.pad(s1_conv, 
+                    (0, 0, s2.shape[-2] - s1_conv.shape[-2], 0))
+            
+            sx = torch.cat([s1_conv, s2], dim=1)[:, :, :32, :]
 
-        # log1p and batch norm
-        sx = torch.log1p(sx)
-        sx = self.jtfs_bn(sx)
+            # log1p and batch norm
+            sx = torch.log1p(sx)
+            sx = self.jtfs_bn(sx)
+        else:
+            cqt = np.log1p(np.abs(librosa.cqt(x.cpu().numpy(), sr=44100, n_bins=96, hop_length=256)))
+            sx = F.avg_pool2d(torch.tensor(cqt).type_as(x), kernel_size=(3, 8))
+            sx = sx.unsqueeze(1)
 
         # conv net
         y = self.conv_net(sx)
-        # y = F.log_softmax(y, dim=1)
         
         return y
     
@@ -195,18 +203,24 @@ class MedleySolosDB(Dataset):
                  jtfs=None,
                  data_dir='/import/c4dm-datasets/medley-solos-db/', 
                  subset='training',
-                 feature_dir='jtfs'):
+                 feature_dir='jtfs',
+                 use_cqt=False):
         super().__init__()
         
         self.msdb = msdb.Dataset(data_dir)
         self.audio_dir = os.path.join(data_dir, 'audio')
         self.csv_dir = os.path.join(data_dir, 'annotation')
         self.subset = subset
+        self.use_cqt = use_cqt
+
         if feature_dir:
             feature_dir = os.path.join(data_dir, feature_dir)
             self.feature_dir = os.path.join(feature_dir, subset)
+        if use_cqt:
+            self.feature_dir = None
 
         self.jtfs = jtfs
+        
 
         df = pd.read_csv(os.path.join(self.csv_dir, 'Medley-solos-DB_metadata.csv'))
         self.df = df.loc[df['subset'] == subset]
@@ -229,19 +243,19 @@ class MedleySolosDB(Dataset):
     def __getitem__(self, idx):
         item = self.df.iloc[idx]
 
-        fname = self.build_fname(item)
         y = int(item['instrument_id'])
 
-        if self.feature_dir:
-            s1_fname, s2_fname = fname 
+        if self.feature_dir and not self.use_cqt:
+            s1_fname, s2_fname = self.build_fname(item, '.npy') 
             s1 = np.load(os.path.join(self.feature_dir, s1_fname))
             s2 = np.load(os.path.join(self.feature_dir, s2_fname))
             Sx = (s1, s2)
             return Sx, y
         else:
+            fname = self.build_fname(item, '.wav') 
             audio, _ = msdb.load_audio(os.path.join(self.audio_dir, fname))
             x = audio
-            return x, y, fname
+            return x, y
 
     def __len__(self):
         return len(self.df)
@@ -255,16 +269,18 @@ class MedleyDataModule(pl.LightningDataModule):
     def __init__(self, 
                  data_dir: str = '/import/c4dm-datasets/medley-solos-db/', 
                  batch_size: int = 32,
-                 jtfs=None,):
+                 jtfs=None,
+                 use_cqt=False):
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.jtfs = jtfs
+        self.use_cqt = use_cqt
 
     def setup(self, stage: Optional[str] = None):
-        self.train_ds = MedleySolosDB(self.jtfs, self.data_dir, subset='training')
-        self.val_ds = MedleySolosDB(self.jtfs, self.data_dir, subset='validation')
-        self.test_ds = MedleySolosDB(self.jtfs, self.data_dir, subset='test')
+        self.train_ds = MedleySolosDB(self.jtfs, self.data_dir, subset='training', use_cqt=self.use_cqt)
+        self.val_ds = MedleySolosDB(self.jtfs, self.data_dir, subset='validation', use_cqt=self.use_cqt)
+        self.test_ds = MedleySolosDB(self.jtfs, self.data_dir, subset='test', use_cqt=self.use_cqt)
 
     def train_dataloader(self):
         return DataLoader(self.train_ds, batch_size=self.batch_size, shuffle=True, drop_last=True)
@@ -274,6 +290,7 @@ class MedleyDataModule(pl.LightningDataModule):
 
     def test_dataloader(self):
         return DataLoader(self.test_ds, batch_size=self.batch_size, shuffle=False, drop_last=True)
+
 
 class LeNet(nn.Module):
     def __init__(self, num_classes, in_channels):
