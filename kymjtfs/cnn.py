@@ -74,14 +74,14 @@ class MedleySolosClassifier(LightningModule):
                                                  
         
     def setup_cnn(self, num_classes):
-        self.conv_net = LeNet(num_classes, self.n_channels)
-        # self.conv_net = models.efficientnet_b0()
-        # # modify input channels 
-        # self.conv_net.features[0][0] = nn.Conv2d(self.n_channels, 
-        #                                          32, 
-        #                                          kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), 
-        #                                          bias=False)
-        # self.conv_net.classifier[1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)    
+        # self.conv_net = LeNet(num_classes, self.n_channels)
+        self.conv_net = models.efficientnet_b0()
+        # modify input channels 
+        self.conv_net.features[0][0] = nn.Conv2d(self.n_channels, 
+                                                 32, 
+                                                 kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), 
+                                                 bias=False)
+        self.conv_net.classifier[1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)    
 
     def setup_jtfs(self):
         self.jtfs = TimeFrequencyScattering1D(
@@ -163,7 +163,7 @@ class MedleySolosClassifier(LightningModule):
         return self.step(batch, fold='test')
     
     def configure_optimizers(self):
-        opt = torch.optim.Adam(self.parameters(), lr=self.lr) #weight_decay=1e-4)
+        opt = torch.optim.Adam(self.parameters(), lr=self.lr)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, factor=0.5, patience=5)
         return {'optimizer': opt, 'lr_scheduler': scheduler, 'monitor':  'val/loss_epoch'}
     
