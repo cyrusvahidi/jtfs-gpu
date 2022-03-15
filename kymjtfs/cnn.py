@@ -27,7 +27,7 @@ class MedleySolosClassifier(LightningModule):
                  Q = 16, 
                  F = 4, 
                  T = 2**11, 
-                 lr=5e-4, 
+                 lr=5e-3, 
                  average='macro', 
                  jtfs_dir='/import/c4dm-datasets/medley-solos-db/jtfs/',
                  classes=['clarinet', 
@@ -74,14 +74,14 @@ class MedleySolosClassifier(LightningModule):
                                                  
         
     def setup_cnn(self, num_classes):
-        self.conv_net = LeNet(num_classes, self.n_channels)
-        # self.conv_net = models.efficientnet_b0()
-        # # modify input channels 
-        # self.conv_net.features[0][0] = nn.Conv2d(self.n_channels, 
-        #                                          32, 
-        #                                          kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), 
-        #                                          bias=False)
-        # self.conv_net.classifier[1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)    
+        # self.conv_net = LeNet(num_classes, self.n_channels)
+        self.conv_net = models.efficientnet_b0()
+        # modify input channels 
+        self.conv_net.features[0][0] = nn.Conv2d(self.n_channels, 
+                                                 32, 
+                                                 kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), 
+                                                 bias=False)
+        self.conv_net.classifier[1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)    
 
     def setup_jtfs(self):
         self.jtfs = TimeFrequencyScattering1D(
@@ -102,9 +102,8 @@ class MedleySolosClassifier(LightningModule):
 
     def get_class_weight(self, csv):
         df = pd.read_csv(csv)
-        support = sorted(dict(df['instrument'].sort_values().value_counts()).items())
-        total = sum(count for _, count in support)
-        weight = [1  - (s / total) for _, s in support]
+        supports = list(df['instrument'].value_counts(sort=False))
+        weight = [max(supports) / s for s in supports]
         return torch.tensor(weight)
         
     def forward(self, x):
@@ -137,7 +136,7 @@ class MedleySolosClassifier(LightningModule):
         Sx, y = batch
         logits = self(Sx)
 
-        loss, acc = F.nll_loss(logits, y), self.acc_metric(logits, y)
+        loss, acc = self.loss(logits, y), self.acc_metric(logits, y)
         class_acc = self.classwise_acc(logits, y)
         class_acc = {k: float(v.detach()) for k, v in class_acc.items()}
         
