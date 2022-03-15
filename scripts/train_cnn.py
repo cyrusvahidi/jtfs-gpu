@@ -12,7 +12,8 @@ warnings.filterwarnings("ignore")
 
 def run_train(n_epochs = 20, 
               batch_size = 32,
-              epoch_size = 8192):
+              epoch_size = 8192,
+              use_cqt = False):
     early_stop_callback = EarlyStopping(monitor="val/loss_epoch", 
                                         min_delta=0.00, 
                                         patience=5, 
@@ -27,8 +28,8 @@ def run_train(n_epochs = 20,
                         # fast_dev_run=True,
                         limit_train_batches=epoch_size // batch_size,
                         logger=wandb_logger)
-    model = MedleySolosClassifier()
-    dataset = MedleyDataModule(batch_size=batch_size) 
+    model = MedleySolosClassifier(use_cqt=use_cqt)
+    dataset = MedleyDataModule(batch_size=batch_size, use_cqt=use_cqt) 
     trainer.fit(model, dataset)
     trainer.test(model, dataset)
 
