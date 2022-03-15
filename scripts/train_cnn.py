@@ -10,7 +10,7 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-def run_train(n_epochs = 15, 
+def run_train(n_epochs = 20, 
               batch_size = 32):
     early_stop_callback = EarlyStopping(monitor="val/loss_epoch", 
                                         min_delta=0.00, 
@@ -22,7 +22,7 @@ def run_train(n_epochs = 15,
                         max_epochs=n_epochs,
                         progress_bar_refresh_rate=1, 
                         enable_checkpointing=True,
-                        callbacks=[early_stop_callback],
+                        # callbacks=[early_stop_callback],
                         # fast_dev_run=True,
                         logger=wandb_logger)
     model = MedleySolosClassifier()
