@@ -21,14 +21,14 @@ from joblib import Memory
 
 class MedleySolosClassifier(LightningModule):
     def __init__(self, 
-                 c = 1e-3,
+                 c = 1e-1,
                  in_shape = 2**16, 
                  J = 12, 
                  Q = 16, 
                  F = 4, 
                  T = 2**11, 
-                 lr=5e-3, 
-                 average='macro', 
+                 lr=1e-3,
+                 average='weighted', 
                  jtfs_dir='/import/c4dm-datasets/medley-solos-db/jtfs/',
                  classes=['clarinet', 
                           'distorted electric guitar',
@@ -74,14 +74,14 @@ class MedleySolosClassifier(LightningModule):
                                                  
         
     def setup_cnn(self, num_classes):
-        # self.conv_net = LeNet(num_classes, self.n_channels)
-        self.conv_net = models.efficientnet_b0()
-        # modify input channels 
-        self.conv_net.features[0][0] = nn.Conv2d(self.n_channels, 
-                                                 32, 
-                                                 kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), 
-                                                 bias=False)
-        self.conv_net.classifier[1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)    
+        self.conv_net = LeNet(num_classes, self.n_channels)
+        # self.conv_net = models.efficientnet_b0()
+        # # modify input channels 
+        # self.conv_net.features[0][0] = nn.Conv2d(self.n_channels, 
+        #                                          32, 
+        #                                          kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), 
+        #                                          bias=False)
+        # self.conv_net.classifier[1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)    
 
     def setup_jtfs(self):
         self.jtfs = TimeFrequencyScattering1D(
@@ -163,9 +163,9 @@ class MedleySolosClassifier(LightningModule):
         return self.step(batch, fold='test')
     
     def configure_optimizers(self):
-        opt = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=5e-4)
-        scheduler = torch.optim.lr_scheduler.ExponentialLR(opt, gamma=0.95)
-        return [opt], [scheduler]
+        opt = torch.optim.Adam(self.parameters(), lr=self.lr) #weight_decay=1e-4)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, factor=0.5, patience=5)
+        return {'optimizer': opt, 'lr_scheduler': scheduler, 'monitor':  'val/loss_epoch'}
     
     def _get_jtfs_out_dim(self):
         dummy_in = torch.randn(self.in_shape).cuda()
