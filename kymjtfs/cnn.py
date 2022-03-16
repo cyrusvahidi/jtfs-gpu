@@ -37,7 +37,7 @@ class MedleySolosClassifier(LightningModule):
                  T = 2**11, 
                  lr=1e-3,
                  average='weighted', 
-                 jtfs_dir='/import/c4dm-datasets/medley-solos-db/jtfs/',
+                 stats_dir='/import/c4dm-datasets/medley-solos-db/jtfs/',
                  classes=['clarinet', 
                           'distorted electric guitar',
                           'female singer',
@@ -47,7 +47,7 @@ class MedleySolosClassifier(LightningModule):
                           'trumpet',
                           'violin'],
                  csv='/import/c4dm-datasets/medley-solos-db/annotation/Medley-solos-DB_metadata.csv',
-                 use_cqt=False):
+                 feature='jtfs'):
         super().__init__()
 
         self.in_shape = in_shape
@@ -56,15 +56,15 @@ class MedleySolosClassifier(LightningModule):
         self.F = F
         self.T = T
         self.lr = lr
-        self.use_cqt = use_cqt
+        self.feature = feature
         self.acc_metric = Accuracy(num_classes=len(classes), average=average)
         self.classwise_acc = ClasswiseWrapper(Accuracy(num_classes=len(classes), average=None), 
                                                        labels=classes)
         
-        if not use_cqt:
-            self.jtfs_dir = jtfs_dir
+        if feature == 'jtfs':
+            self.stats_dir = stats_dir
             
-            self.mu = torch.tensor(np.load(os.path.join(jtfs_dir, 'stats/mu.npy')))
+            self.mu = torch.tensor(np.load(os.path.join(stats_dir, 'stats/mu.npy')))
             
             s1_channels = 4
             
@@ -78,7 +78,9 @@ class MedleySolosClassifier(LightningModule):
             
             self.c = c 
             self.eps = nn.Parameter(torch.randn(len(self.mu)))
-        else:
+        elif feature == 'scat1d':
+            pass
+        elif feature == 'cqt':
             self.n_channels = 1
             self.cqt = CQT(sr=44100, n_bins=96, hop_length=256, fmin=32.7)
             self.a_to_db = AmplitudeToDB(stype = 'magnitude')
@@ -87,16 +89,19 @@ class MedleySolosClassifier(LightningModule):
 
         self.loss = nn.CrossEntropyLoss(weight=self.get_class_weight(csv))
                                                  
-        
+         
     def setup_cnn(self, num_classes):
         # self.conv_net = LeNet(num_classes, self.n_channels)
-        self.conv_net = models.efficientnet_b0()
-        # modify input channels 
-        self.conv_net.features[0][0] = nn.Conv2d(self.n_channels, 
-                                                 32, 
-                                                 kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), 
-                                                 bias=False)
-        self.conv_net.classifier[1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)    
+        if self.feature is not 'scat1d':
+            self.conv_net = models.efficientnet_b0()
+            # modify input channels 
+            self.conv_net.features[0][0] = nn.Conv2d(self.n_channels, 
+                                                    32, 
+                                                    kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), 
+                                                    bias=False)
+            self.conv_net.classifier[1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)    
+        else:
+            pass
 
     def setup_jtfs(self):
         self.jtfs = TimeFrequencyScattering1D(
@@ -122,7 +127,7 @@ class MedleySolosClassifier(LightningModule):
         return torch.tensor(weight)
         
     def forward(self, x):
-        if not self.use_cqt:
+        if self.feature == 'jtfs':
             Sx = x
             s1, s2 = Sx[0].squeeze(1), Sx[1].squeeze(1)
 
@@ -142,7 +147,9 @@ class MedleySolosClassifier(LightningModule):
             # log1p and batch norm
             sx = torch.log1p(sx)
             sx = self.jtfs_bn(sx)
-        else:
+        elif self.feature == 'scat1d':
+            pass
+        elif self.feature == 'cqt':
             # cqt = load_cqt(x.cpu().numpy())
             X = self.a_to_db(self.cqt(x))
             sx = F.avg_pool2d(torch.tensor(X).type_as(x), kernel_size=(3, 8))
@@ -202,28 +209,25 @@ class MedleySolosClassifier(LightningModule):
 @gin.configurable
 class MedleySolosDB(Dataset):
     def __init__(self, 
-                 jtfs=None,
                  data_dir='/import/c4dm-datasets/medley-solos-db/', 
                  subset='training',
                  feature_dir='jtfs',
-                 use_cqt=False):
+                 feature='jtfs'):
         super().__init__()
         
         self.msdb = msdb.Dataset(data_dir)
         self.audio_dir = os.path.join(data_dir, 'audio')
         self.csv_dir = os.path.join(data_dir, 'annotation')
         self.subset = subset
-        self.use_cqt = use_cqt
+        self.feature = feature
 
-        if feature_dir:
+        if feature == 'jtfs' or feature == 'scat1d':
+            assert feature_dir, f"feature_dir must be specified for JTFS or TS, got {feature_dir}"
             feature_dir = os.path.join(data_dir, feature_dir)
             self.feature_dir = os.path.join(feature_dir, subset)
-        if use_cqt:
+        elif feature == 'cqt':
             self.feature_dir = None
-
-        self.jtfs = jtfs
         
-
         df = pd.read_csv(os.path.join(self.csv_dir, 'Medley-solos-DB_metadata.csv'))
         self.df = df.loc[df['subset'] == subset]
         self.df.reset_index(inplace = True)
@@ -232,7 +236,7 @@ class MedleySolosDB(Dataset):
         uuid = df_item['uuid4']
         instr_id = df_item['instrument_id']
         subset = df_item['subset']
-        if self.feature_dir:
+        if self.feature_dir == 'jtfs':
             s1 = f'Medley-solos-DB_{subset}-{instr_id}_{uuid}_S1{ext}'
             s2 = f'Medley-solos-DB_{subset}-{instr_id}_{uuid}_S2{ext}'
             return s1, s2
@@ -244,12 +248,14 @@ class MedleySolosDB(Dataset):
 
         y = int(item['instrument_id'])
 
-        if self.feature_dir and not self.use_cqt:
+        if self.feature == 'jtfs':
             s1_fname, s2_fname = self.build_fname(item, '.npy') 
             s1 = np.load(os.path.join(self.feature_dir, s1_fname))
             s2 = np.load(os.path.join(self.feature_dir, s2_fname))
             Sx = (s1, s2)
             return Sx, y
+        elif self.feature == 'scat1d':
+            pass
         else:
             fname = self.build_fname(item, '.wav') 
             audio, _ = msdb.load_audio(os.path.join(self.audio_dir, fname))
@@ -264,27 +270,37 @@ class MedleyDataModule(pl.LightningDataModule):
     def __init__(self, 
                  data_dir: str = '/import/c4dm-datasets/medley-solos-db/', 
                  batch_size: int = 32,
-                 jtfs=None,
-                 use_cqt=False):
+                 feature=False):
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
-        self.jtfs = jtfs
-        self.use_cqt = use_cqt
+        self.feature = feature
 
     def setup(self, stage: Optional[str] = None):
-        self.train_ds = MedleySolosDB(self.jtfs, self.data_dir, subset='training', use_cqt=self.use_cqt)
-        self.val_ds = MedleySolosDB(self.jtfs, self.data_dir, subset='validation', use_cqt=self.use_cqt)
-        self.test_ds = MedleySolosDB(self.jtfs, self.data_dir, subset='test', use_cqt=self.use_cqt)
+        self.train_ds = MedleySolosDB(self.data_dir, subset='training', feature=self.feature)
+        self.val_ds = MedleySolosDB(self.data_dir, subset='validation', feature=self.feature)
+        self.test_ds = MedleySolosDB(self.data_dir, subset='test', feature=self.feature)
 
     def train_dataloader(self):
-        return DataLoader(self.train_ds, batch_size=self.batch_size, shuffle=True, drop_last=True)
+        return DataLoader(self.train_ds, 
+                          batch_size=self.batch_size, 
+                          shuffle=True, 
+                          drop_last=True,
+                          num_workers=1)
 
     def val_dataloader(self):
-        return DataLoader(self.val_ds, batch_size=self.batch_size, shuffle=False, drop_last=True)
+        return DataLoader(self.val_ds, 
+                          batch_size=self.batch_size, 
+                          shuffle=False, 
+                          drop_last=True,
+                          num_workers=1)
 
     def test_dataloader(self):
-        return DataLoader(self.test_ds, batch_size=self.batch_size, shuffle=False, drop_last=True)
+        return DataLoader(self.test_ds, 
+                          batch_size=self.batch_size, 
+                          shuffle=False, 
+                          drop_last=True, 
+                          num_workers=1)
 
 
 class LeNet(nn.Module):
