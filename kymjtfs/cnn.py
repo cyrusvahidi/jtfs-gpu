@@ -1,20 +1,17 @@
-import os, pandas as pd, numpy as np, torch, librosa
-
 from typing import Optional, Union
+
+import os, pandas as pd, numpy as np, torch, librosa, gin
+import pytorch_lightning as pl
+import mirdata.datasets.medley_solos_db as msdb
+import torchvision.models as models
 
 from torch.nn import functional as F
 from torch import nn
-import torchvision.models as models
-from torchmetrics import Accuracy, ClasswiseWrapper
-
-from nnAudio.features import CQT
-from torchaudio.transforms import AmplitudeToDB
-
 from torch.utils.data import Dataset, DataLoader
+from torchaudio.transforms import AmplitudeToDB
+from torchmetrics import Accuracy, ClasswiseWrapper
 from pytorch_lightning.core.lightning import LightningModule
-import pytorch_lightning as pl
-import mirdata.datasets.medley_solos_db as msdb
-
+from nnAudio.features import CQT
 from kymatio.torch import TimeFrequencyScatteringTorch1D as TimeFrequencyScattering1D
 
 from kymjtfs.batch_norm import ScatteringBatchNorm
@@ -29,6 +26,7 @@ def load_cqt(x, n_bins=96, n_bins_per_octave=12, fmin=32.70):
     return X
 
 
+@gin.configurable
 class MedleySolosClassifier(LightningModule):
     def __init__(self, 
                  c = 1e-1,
@@ -71,7 +69,6 @@ class MedleySolosClassifier(LightningModule):
             s1_channels = 4
             
             self.s1_conv1 = nn.Sequential(
-                # Unsqueeze(1),
                 nn.Conv2d(1, s1_channels, kernel_size=(16, 1)),
                 nn.ReLU(),
                 nn.AvgPool2d(kernel_size=(4, 1), padding=(2, 0))
@@ -200,17 +197,9 @@ class MedleySolosClassifier(LightningModule):
         S = torch.cat([s1, sx[1]], dim=1)[:, :, :32, :]
         out_dim = S.shape[1:3]
         return out_dim
-    
+        
 
-class Unsqueeze(nn.Module):
-    def __init__(self, dim=1):
-        super(Unsqueeze, self).__init__()
-        self.dim = dim
-
-    def forward(self, x):
-        return x.unsqueeze(self.dim)
-
-
+@gin.configurable
 class MedleySolosDB(Dataset):
     def __init__(self, 
                  jtfs=None,
