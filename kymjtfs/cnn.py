@@ -19,6 +19,18 @@ from kymjtfs.batch_norm import ScatteringBatchNorm
 from joblib import Memory
 
 
+def load_cqt(x, n_bins=96, n_bins_per_octave=12, fmin=32.70):
+    freqs = librosa.cqt_frequencies(n_bins=n_bins, fmin=fmin)
+    a_weights_db = librosa.A_weighting(freqs, min_db=-80.0)
+    a_weights = (10.0 ** (a_weights_db / 10))
+    cqt = np.abs(librosa.cqt(x, sr=44100, n_bins=n_bins, hop_length=256, fmin=fmin))
+    X = np.log1p(1000.0 * cqt * a_weights[:, np.newaxis]).astype(np.float32)
+    return X
+
+memory = Memory('/import/c4dm-04/cv', verbose=1)
+cached_cqt = memory.cache(load_cqt)
+
+
 class MedleySolosClassifier(LightningModule):
     def __init__(self, 
                  c = 1e-1,
@@ -134,7 +146,7 @@ class MedleySolosClassifier(LightningModule):
             sx = torch.log1p(sx)
             sx = self.jtfs_bn(sx)
         else:
-            cqt = load_cqt(x.cpu().numpy())
+            cqt = cached_cqt(x.cpu().numpy())
             sx = F.avg_pool2d(torch.tensor(cqt).type_as(x), kernel_size=(3, 8))
             sx = sx.unsqueeze(1)
 
@@ -256,17 +268,6 @@ class MedleySolosDB(Dataset):
 
     def __len__(self):
         return len(self.df)
-
-memory = Memory('/import/c4dm-04/cv', verbose=0)
-cached_get_X = memory.cache(load_cqt)
-
-def load_cqt(x, n_bins=96, n_bins_per_octave=12):
-    freqs = librosa.cqt_frequencies(n_bins=n_bins)
-    a_weights_db = librosa.A_weighting(freqs, min_db=-80.0)
-    a_weights = (10.0 ** (a_weights_db / 10))
-    cqt = np.abs(librosa.cqt(x, sr=44100, n_bins=n_bins, hop_length=256))
-    X = np.log1p(1000.0 * cqt * a_weights[:, np.newaxis]).astype(np.float32)
-    return X
 
 
 class MedleyDataModule(pl.LightningDataModule):
