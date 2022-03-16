@@ -39,8 +39,7 @@ class MedleySolosClassifier(LightningModule):
                           'trumpet',
                           'violin'],
                  csv='/import/c4dm-datasets/medley-solos-db/annotation/Medley-solos-DB_metadata.csv',
-                 use_cqt=False,
-                 cache_dir='/import/c4dm-04/cv'):
+                 use_cqt=False):
         super().__init__()
 
         self.in_shape = in_shape
@@ -78,8 +77,6 @@ class MedleySolosClassifier(LightningModule):
         self.setup_cnn(len(classes))
 
         self.loss = nn.CrossEntropyLoss(weight=self.get_class_weight(csv))
-
-        self.memory = Memory(cachedir, verbose=0)
                                                  
         
     def setup_cnn(self, num_classes):
@@ -137,7 +134,6 @@ class MedleySolosClassifier(LightningModule):
             sx = torch.log1p(sx)
             sx = self.jtfs_bn(sx)
         else:
-            load_cqt = self.memory.cache(_load_cqt)
             cqt = load_cqt(x.cpu().numpy())
             sx = F.avg_pool2d(torch.tensor(cqt).type_as(x), kernel_size=(3, 8))
             sx = sx.unsqueeze(1)
@@ -261,9 +257,16 @@ class MedleySolosDB(Dataset):
     def __len__(self):
         return len(self.df)
 
+memory = Memory('/import/c4dm-04/cv', verbose=0)
+cached_get_X = memory.cache(load_cqt)
 
-def _load_cqt(x):
-    return np.log1p(np.abs(librosa.cqt(x, sr=44100, n_bins=96, hop_length=256)))
+def load_cqt(x, n_bins=96, n_bins_per_octave=12):
+    freqs = librosa.cqt_frequencies(n_bins=n_bins)
+    a_weights_db = librosa.A_weighting(freqs, min_db=-80.0)
+    a_weights = (10.0 ** (a_weights_db / 10))
+    cqt = np.abs(librosa.cqt(x, sr=44100, n_bins=n_bins, hop_length=256))
+    X = np.log1p(1000.0 * cqt * a_weights[:, np.newaxis]).astype(np.float32)
+    return X
 
 
 class MedleyDataModule(pl.LightningDataModule):
