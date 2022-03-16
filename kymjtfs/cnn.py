@@ -7,6 +7,9 @@ from torch import nn
 import torchvision.models as models
 from torchmetrics import Accuracy, ClasswiseWrapper
 
+from nnAudio.features import CQT
+from torchaudio.transforms import AmplitudeToDB
+
 from torch.utils.data import Dataset, DataLoader
 from pytorch_lightning.core.lightning import LightningModule
 import pytorch_lightning as pl
@@ -16,8 +19,6 @@ from kymatio.torch import TimeFrequencyScatteringTorch1D as TimeFrequencyScatter
 
 from kymjtfs.batch_norm import ScatteringBatchNorm
 
-from joblib import Memory
-
 
 def load_cqt(x, n_bins=96, n_bins_per_octave=12, fmin=32.70):
     freqs = librosa.cqt_frequencies(n_bins=n_bins, fmin=fmin)
@@ -26,9 +27,6 @@ def load_cqt(x, n_bins=96, n_bins_per_octave=12, fmin=32.70):
     cqt = np.abs(librosa.cqt(x, sr=44100, n_bins=n_bins, hop_length=256, fmin=fmin))
     X = np.log1p(1000.0 * cqt * a_weights[:, np.newaxis]).astype(np.float32)
     return X
-
-memory = Memory('/import/c4dm-04/cv', verbose=1)
-cached_cqt = memory.cache(load_cqt)
 
 
 class MedleySolosClassifier(LightningModule):
@@ -85,6 +83,8 @@ class MedleySolosClassifier(LightningModule):
             self.eps = nn.Parameter(torch.randn(len(self.mu)))
         else:
             self.n_channels = 1
+            self.cqt = CQT(sr=44100, n_bins=96, hop_length=256, fmin=32.7)
+            self.a_to_db = AmplitudeToDB(stype = 'magnitude')
 
         self.setup_cnn(len(classes))
 
@@ -146,8 +146,9 @@ class MedleySolosClassifier(LightningModule):
             sx = torch.log1p(sx)
             sx = self.jtfs_bn(sx)
         else:
-            cqt = cached_cqt(x.cpu().numpy())
-            sx = F.avg_pool2d(torch.tensor(cqt).type_as(x), kernel_size=(3, 8))
+            # cqt = load_cqt(x.cpu().numpy())
+            X = self.a_to_db(self.cqt(x))
+            sx = F.avg_pool2d(torch.tensor(X).type_as(x), kernel_size=(3, 8))
             sx = sx.unsqueeze(1)
 
         # conv net
