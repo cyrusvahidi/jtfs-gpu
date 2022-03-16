@@ -1,0 +1,5 @@
+include '/homes/cv300/Documents/scattering/scripts/gin/setting.gin'
+
+SCAT1D_FEATURE_DIR = '/import/c4dm-datasets/medley-solos-db/scat1d/'
+
+MedleySolosClassifier.stats_dir = %SCAT1D_FEATURE_DIR
