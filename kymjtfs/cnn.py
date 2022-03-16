@@ -30,11 +30,11 @@ def load_cqt(x, n_bins=96, n_bins_per_octave=12, fmin=32.70):
 class MedleySolosClassifier(LightningModule):
     def __init__(self, 
                  c = 1e-1,
-                 in_shape = 2**16, 
-                 J = 12, 
-                 Q = 16, 
-                 F = 4, 
-                 T = 2**11, 
+                 jtfs_kwargs = {'shape': (2**16, ),
+                                'J': 12,
+                                'Q': 16,
+                                'F': 4,
+                                'T': 2**11},
                  lr=1e-3,
                  average='weighted', 
                  stats_dir='/import/c4dm-datasets/medley-solos-db/jtfs/',
@@ -47,48 +47,48 @@ class MedleySolosClassifier(LightningModule):
                           'trumpet',
                           'violin'],
                  csv='/import/c4dm-datasets/medley-solos-db/annotation/Medley-solos-DB_metadata.csv',
-                 feature='jtfs'):
+                 feature='jtfs',
+                 learn_adalog = True):
         super().__init__()
 
-        self.in_shape = in_shape
-        self.J = J
-        self.Q = Q
-        self.F = F
-        self.T = T
+        self.jtfs_kwargs = jtfs_kwargs
         self.lr = lr
         self.feature = feature
+        self.learn_adalog = True
+
         self.acc_metric = Accuracy(num_classes=len(classes), average=average)
         self.classwise_acc = ClasswiseWrapper(Accuracy(num_classes=len(classes), average=None), 
                                                        labels=classes)
+        self.loss = nn.CrossEntropyLoss(weight=self.get_class_weight(csv))
         
-        if feature == 'jtfs':
-            self.stats_dir = stats_dir
-            
+        if feature == 'jtfs' or feature == 'scat1d':
             self.mu = torch.tensor(np.load(os.path.join(stats_dir, 'stats/mu.npy')))
             
-            s1_channels = 4
-            
-            self.s1_conv1 = nn.Sequential(
-                nn.Conv2d(1, s1_channels, kernel_size=(16, 1)),
-                nn.ReLU(),
-                nn.AvgPool2d(kernel_size=(4, 1), padding=(2, 0))
-            )
-            self.n_channels = len(self.mu) + (s1_channels - 1)
-            self.jtfs_bn = nn.BatchNorm2d(self.n_channels)
-            
+            if feature == 'jtfs':
+                s1_channels = 4
+                self.s1_conv1 = nn.Sequential(
+                    nn.Conv2d(1, s1_channels, kernel_size=(16, 1)),
+                    nn.ReLU(),
+                    nn.AvgPool2d(kernel_size=(4, 1), padding=(2, 0))
+                )
+                self.n_channels = len(self.mu) + (s1_channels - 1)
+            elif feature == 'scat1d':
+                self.n_channels = len(self.mu)
+
             self.c = c 
-            self.eps = nn.Parameter(torch.randn(len(self.mu)))
+            if self.learn_adalog:
+                self.eps = nn.Parameter(torch.randn(len(self.mu)))
+
         elif feature == 'scat1d':
             pass
         elif feature == 'cqt':
             self.n_channels = 1
             self.cqt = CQT(sr=44100, n_bins=96, hop_length=256, fmin=32.7)
             self.a_to_db = AmplitudeToDB(stype = 'magnitude')
+        
+        self.bn = nn.BatchNorm2d(self.n_channels)
 
-        self.setup_cnn(len(classes))
-
-        self.loss = nn.CrossEntropyLoss(weight=self.get_class_weight(csv))
-                                                 
+        self.setup_cnn(len(classes))                                                 
          
     def setup_cnn(self, num_classes):
         # self.conv_net = LeNet(num_classes, self.n_channels)
@@ -102,14 +102,11 @@ class MedleySolosClassifier(LightningModule):
             self.conv_net.classifier[1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)    
         else:
             pass
+            # 1d convnet
 
     def setup_jtfs(self):
         self.jtfs = TimeFrequencyScattering1D(
-            shape=(self.in_shape, ),
-            T=self.T,
-            Q=self.Q,
-            J=self.J,
-            F=self.F,
+            **jtfs_kwargs,
             average_fr=True,
             max_pad_factor=1, 
             max_pad_factor_fr=1,
@@ -131,11 +128,10 @@ class MedleySolosClassifier(LightningModule):
             Sx = x
             s1, s2 = Sx[0].squeeze(1), Sx[1].squeeze(1)
 
-            # apply mean normalization
-            c = (self.c * torch.exp(torch.tanh(self.eps)))
-            # c = self.c
-            s1 = s1 / (c[None, :1, None] * self.mu[:1].type_as(s1) + 1e-8)
-            s2 = s2 / (c[None, 1:, None, None] * self.mu[1:][None, :, None, None].type_as(s2) + 1e-8)
+            # apply AdaLog
+            c = (self.c * torch.exp(torch.tanh(self.eps))) if self.learn_adalog else self.c
+            s1 = torch.log1p(s1 / (c[None, :1, None] * self.mu[:1].type_as(s1) + 1e-8))
+            s2 = torch.log1p(s2 / (c[None, 1:, None, None] * self.mu[1:][None, :, None, None].type_as(s2) + 1e-8))
 
             # s1 learnable frequential filter
             s1_conv = self.s1_conv1(s1.unsqueeze(1))
@@ -143,10 +139,9 @@ class MedleySolosClassifier(LightningModule):
                     (0, 0, s2.shape[-2] - s1_conv.shape[-2], 0))
             
             sx = torch.cat([s1_conv, s2], dim=1)[:, :, :32, :]
-
             # log1p and batch norm
-            sx = torch.log1p(sx)
-            sx = self.jtfs_bn(sx)
+            # sx = torch.log1p(sx)
+            sx = self.bn(sx)
         elif self.feature == 'scat1d':
             pass
         elif self.feature == 'cqt':
@@ -154,6 +149,7 @@ class MedleySolosClassifier(LightningModule):
             X = self.a_to_db(self.cqt(x))
             sx = F.avg_pool2d(torch.tensor(X).type_as(x), kernel_size=(3, 8))
             sx = sx.unsqueeze(1)
+            sx = self.bn(sx)
 
         # conv net
         y = self.conv_net(sx)
