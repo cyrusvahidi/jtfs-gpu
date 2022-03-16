@@ -84,6 +84,13 @@ def process_msdb_jtfs(output_dir='/import/c4dm-datasets/medley-solos-db/jtfs',
                         'max_pad_factor': 1,
                         'max_pad_factor_fr': 1,
                       }):
+    """ Script to save Medley-Solos-DB time-frequency scattering coefficients and stats
+        to disk
+    Args:
+        output_dir: the output directory to save the numpy array features
+        data_dir: source data directory for medley-solos-db download 
+        jtfs_kwargs: kymatio jtfs frontend hyperparameters
+    """
     make_directory(output_dir)
     data_module = MedleyDataModule(data_dir, batch_size=32)
     data_module.setup()
