@@ -1,0 +1,5 @@
+include '/homes/cv300/Documents/scattering/scripts/gin/setting.gin'
+
+JTFS_FEATURE_DIR = '/import/c4dm-datasets/medley-solos-db/jtfs/'
+
+MedleySolosClassifier.stats_dir = %JTFS_FEATURE_DIR
