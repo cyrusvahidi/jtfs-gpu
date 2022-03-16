@@ -1,4 +1,4 @@
-import gin
+import gin, os
 import pytorch_lightning as pl, fire
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
@@ -13,8 +13,8 @@ def run_train(n_epochs = 20,
               batch_size = 32,
               epoch_size = 8192,
               use_cqt = False,
-              gin_config_file = '/homes/cv300/Documents/scattering/gin/config.gin'):
-    gin.parse_config_file(gin_config_file)
+              gin_config_file = 'scripts/gin/config.gin'):
+    gin.parse_config_file(os.path.join(os.getcwd(), gin_config_file))
     
     early_stop_callback = EarlyStopping(monitor="val/loss_epoch", 
                                         min_delta=0.00, 
