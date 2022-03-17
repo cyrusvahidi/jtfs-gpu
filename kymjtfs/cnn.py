@@ -127,7 +127,7 @@ class MedleySolosClassifier(LightningModule):
             s1, s2 = Sx[0].squeeze(1), Sx[1].squeeze(1)
 
             # apply AdaLog
-            c = (self.c * torch.exp(torch.tanh(self.eps))) if self.learn_adalog else self.c
+            c = self.get_c()
             s1 = torch.log1p(s1 / (c[None, :1, None] * self.mu[:1].type_as(s1) + 1e-8))
             s2 = torch.log1p(s2 / (c[None, 1:, None, None] * self.mu[1:][None, :, None, None].type_as(s2) + 1e-8))
 
@@ -142,7 +142,7 @@ class MedleySolosClassifier(LightningModule):
             sx = self.bn(sx)
         elif self.feature == 'scat1d':
             Sx = x
-            c = (self.c * torch.exp(torch.tanh(self.eps))) if self.learn_adalog else self.c
+            c = self.get_c()
             sx = torch.log1p(Sx / (c[None, :, None] * self.mu[None, :, None].type_as(Sx) + 1e-8))
             sx = self.bn(sx)
         elif self.feature == 'cqt':
@@ -156,8 +156,7 @@ class MedleySolosClassifier(LightningModule):
         y = self.conv_net(sx)
         
         return y
-    
-        
+ 
     def step(self, batch, fold):
         Sx, y = batch
         logits = self(Sx)
@@ -192,6 +191,10 @@ class MedleySolosClassifier(LightningModule):
         opt = torch.optim.Adam(self.parameters(), lr=self.lr)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, factor=0.5, patience=5)
         return {'optimizer': opt, 'lr_scheduler': scheduler, 'monitor':  'val/loss_epoch'}
+
+    def get_c(self):
+        c = (self.c * torch.exp(torch.tanh(self.eps))) if self.learn_adalog else self.c
+        return c
     
     def _get_jtfs_out_dim(self):
         dummy_in = torch.randn(self.in_shape).cuda()
