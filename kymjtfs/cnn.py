@@ -84,7 +84,7 @@ class MedleySolosClassifier(LightningModule):
             self.cqt = CQT(sr=44100, n_bins=96, hop_length=256, fmin=32.7)
             self.a_to_db = AmplitudeToDB(stype = 'magnitude')
         
-        self.bn = nn.BatchNorm2d(self.n_channels)
+        self.bn = nn.BatchNorm2d(self.n_channels) if '1d' not in self.feature else nn.BatchNorm1d(self.n_channels)
 
         self.setup_cnn(len(classes))                                                 
          
