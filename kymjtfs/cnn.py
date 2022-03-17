@@ -92,7 +92,7 @@ class MedleySolosClassifier(LightningModule):
          
     def setup_cnn(self, num_classes):
         # self.conv_net = LeNet(num_classes, self.n_channels)
-        if self.feature is not 'scat1d':
+        if 'scat1d' not in self.feature:
             self.conv_net = models.efficientnet_b0()
             # modify input channels 
             self.conv_net.features[0][0] = nn.Conv2d(self.n_channels, 
@@ -232,7 +232,7 @@ class MedleySolosDB(Dataset):
         uuid = df_item['uuid4']
         instr_id = df_item['instrument_id']
         subset = df_item['subset']
-        if self.feature_dir == 'jtfs':
+        if self.feature == 'jtfs':
             s1 = f'Medley-solos-DB_{subset}-{instr_id}_{uuid}_S1{ext}'
             s2 = f'Medley-solos-DB_{subset}-{instr_id}_{uuid}_S2{ext}'
             return s1, s2
@@ -256,7 +256,7 @@ class MedleySolosDB(Dataset):
             fname = self.build_fname(item, '.wav') 
             audio, _ = msdb.load_audio(os.path.join(self.audio_dir, fname))
             x = audio
-            return x, y
+            return x, y, fname
 
     def __len__(self):
         return len(self.df)
