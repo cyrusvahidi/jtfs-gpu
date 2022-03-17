@@ -37,7 +37,7 @@ class MedleySolosClassifier(LightningModule):
                                 'T': 2**11},
                  lr=1e-3,
                  average='weighted', 
-                 stats_dir='/import/c4dm-datasets/medley-solos-db/jtfs/',
+                 stats_dir='/import/c4dm-datasets/medley-solos-db/',
                  classes=['clarinet', 
                           'distorted electric guitar',
                           'female singer',
@@ -54,7 +54,7 @@ class MedleySolosClassifier(LightningModule):
         self.jtfs_kwargs = jtfs_kwargs
         self.lr = lr
         self.feature = feature
-        self.learn_adalog = True
+        self.learn_adalog = learn_adalog
 
         self.acc_metric = Accuracy(num_classes=len(classes), average=average)
         self.classwise_acc = ClasswiseWrapper(Accuracy(num_classes=len(classes), average=None), 
@@ -62,6 +62,7 @@ class MedleySolosClassifier(LightningModule):
         self.loss = nn.CrossEntropyLoss(weight=self.get_class_weight(csv))
         
         if feature == 'jtfs' or feature == 'scat1d':
+            stats_dir = os.path.join(stats_dir, feature)
             self.mu = torch.tensor(np.load(os.path.join(stats_dir, 'stats/mu.npy')))
             
             if feature == 'jtfs':
@@ -78,9 +79,6 @@ class MedleySolosClassifier(LightningModule):
             self.c = c 
             if self.learn_adalog:
                 self.eps = nn.Parameter(torch.randn(len(self.mu)))
-
-        elif feature == 'scat1d':
-            pass
         elif feature == 'cqt':
             self.n_channels = 1
             self.cqt = CQT(sr=44100, n_bins=96, hop_length=256, fmin=32.7)
@@ -101,8 +99,8 @@ class MedleySolosClassifier(LightningModule):
                                                     bias=False)
             self.conv_net.classifier[1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)    
         else:
-            pass
             # 1d convnet
+            self.conv_net = LeNet1D(num_classes, self.n_channels)
 
     def setup_jtfs(self):
         self.jtfs = TimeFrequencyScattering1D(
@@ -143,7 +141,10 @@ class MedleySolosClassifier(LightningModule):
             # sx = torch.log1p(sx)
             sx = self.bn(sx)
         elif self.feature == 'scat1d':
-            pass
+            Sx = x
+            c = (self.c * torch.exp(torch.tanh(self.eps))) if self.learn_adalog else self.c
+            sx = torch.log1p(Sx / (c[None, :, None] * self.mu[None, :, None].typeas(Sx) + 1e-8))
+            sx = self.bn(sx)
         elif self.feature == 'cqt':
             # cqt = load_cqt(x.cpu().numpy())
             X = self.a_to_db(self.cqt(x))
@@ -207,7 +208,6 @@ class MedleySolosDB(Dataset):
     def __init__(self, 
                  data_dir='/import/c4dm-datasets/medley-solos-db/', 
                  subset='training',
-                 feature_dir='jtfs',
                  feature='jtfs'):
         super().__init__()
         
@@ -218,8 +218,7 @@ class MedleySolosDB(Dataset):
         self.feature = feature
 
         if feature == 'jtfs' or feature == 'scat1d':
-            assert feature_dir, f"feature_dir must be specified for JTFS or TS, got {feature_dir}"
-            feature_dir = os.path.join(data_dir, feature_dir)
+            feature_dir = os.path.join(data_dir, feature)
             self.feature_dir = os.path.join(feature_dir, subset)
         elif feature == 'cqt':
             self.feature_dir = None
@@ -251,7 +250,9 @@ class MedleySolosDB(Dataset):
             Sx = (s1, s2)
             return Sx, y
         elif self.feature == 'scat1d':
-            pass
+            fname = self.build_fname(item, '.npy') 
+            Sx = np.load(os.path.join(self.feature_dir, fname))
+            return Sx, y
         else:
             fname = self.build_fname(item, '.wav') 
             audio, _ = msdb.load_audio(os.path.join(self.audio_dir, fname))
@@ -262,11 +263,12 @@ class MedleySolosDB(Dataset):
         return len(self.df)
 
 
+@gin.configurable
 class MedleyDataModule(pl.LightningDataModule):
     def __init__(self, 
                  data_dir: str = '/import/c4dm-datasets/medley-solos-db/', 
                  batch_size: int = 32,
-                 feature=False):
+                 feature='jtfs'):
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
@@ -315,6 +317,34 @@ class LeNet(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Linear(in_features=120, out_features=84),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(in_features=84, out_features=num_classes),
+        )
+
+    def forward(self, x):
+        return self.classifier(self.feature_extractor(x).flatten(1))
+
+
+class LeNet1D(nn.Module):
+    def __init__(self, num_classes, in_channels):
+        super().__init__()
+        self.feature_extractor = nn.Sequential(            
+            nn.Conv1d(in_channels=in_channels, out_channels=512, kernel_size=5, stride=1),
+            nn.BatchNorm1d(512),
+            nn.ReLU(),
+            nn.AvgPool1d(kernel_size=2),
+            nn.Conv1d(in_channels=512, out_channels=256, kernel_size=5, stride=1),
+            nn.BatchNorm1d(256),
+            nn.ReLU(),
+            nn.AvgPool1d(kernel_size=2),
+            nn.Conv1d(in_channels=256, out_channels=128, kernel_size=5, stride=1),
+            nn.BatchNorm1d(128),
+            nn.ReLU()
+        )
+
+        self.classifier = nn.Sequential(
+            nn.Linear(in_features=128, out_features=84),
             nn.ReLU(),
             nn.Dropout(0.5),
             nn.Linear(in_features=84, out_features=num_classes),

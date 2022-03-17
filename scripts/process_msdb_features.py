@@ -130,7 +130,7 @@ class Scat1DExtractor(Extractor):
                     self.lambda_train.append(Sx.mean(dim=-1))
 
                 out_path = os.path.join(subset_dir, os.path.splitext(fname)[0])
-                np.save(out_path, Sx)
+                np.save(out_path, Sx.cpu().numpy())
 
 
 def process_msdb_jtfs(data_dir='/import/c4dm-datasets/medley-solos-db/',

@@ -12,7 +12,6 @@ warnings.filterwarnings("ignore")
 def run_train(n_epochs = 20, 
               batch_size = 32,
               epoch_size = 8192,
-              use_cqt = False,
               gin_config_file = 'scripts/gin/config.gin'):
     gin.parse_config_file(os.path.join(os.getcwd(), gin_config_file))
     
@@ -30,8 +29,8 @@ def run_train(n_epochs = 20,
                         # fast_dev_run=True,
                         limit_train_batches=epoch_size // batch_size,
                         logger=wandb_logger)
-    model = MedleySolosClassifier(use_cqt=use_cqt)
-    dataset = MedleyDataModule(batch_size=batch_size, use_cqt=use_cqt) 
+    model = MedleySolosClassifier()
+    dataset = MedleyDataModule(batch_size=batch_size) 
     trainer.fit(model, dataset)
     trainer.test(model, dataset)
 
