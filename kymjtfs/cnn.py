@@ -143,7 +143,7 @@ class MedleySolosClassifier(LightningModule):
         elif self.feature == 'scat1d':
             Sx = x
             c = (self.c * torch.exp(torch.tanh(self.eps))) if self.learn_adalog else self.c
-            sx = torch.log1p(Sx / (c[None, :, None] * self.mu[None, :, None].typeas(Sx) + 1e-8))
+            sx = torch.log1p(Sx / (c[None, :, None] * self.mu[None, :, None].type_as(Sx) + 1e-8))
             sx = self.bn(sx)
         elif self.feature == 'cqt':
             # cqt = load_cqt(x.cpu().numpy())
