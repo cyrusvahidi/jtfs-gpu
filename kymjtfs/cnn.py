@@ -89,8 +89,8 @@ class MedleySolosClassifier(LightningModule):
         self.setup_cnn(len(classes))                                                 
          
     def setup_cnn(self, num_classes):
-        # self.conv_net = LeNet(num_classes, self.n_channels)
         if 'scat1d' not in self.feature:
+            # self.conv_net = LeNet(num_classes, self.n_channels)
             self.conv_net = models.efficientnet_b0()
             # modify input channels 
             self.conv_net.features[0][0] = nn.Conv2d(self.n_channels, 
@@ -127,9 +127,9 @@ class MedleySolosClassifier(LightningModule):
             s1, s2 = Sx[0].squeeze(1), Sx[1].squeeze(1)
 
             # apply AdaLog
-            c = self.get_c()
+            c = self.get_c().type_as(s1)
             s1 = torch.log1p(s1 / (c[None, :1, None] * self.mu[:1].type_as(s1) + 1e-8))
-            s2 = torch.log1p(s2 / (c[None, 1:, None, None] * self.mu[1:][None, :, None, None].type_as(s2) + 1e-8))
+            s2 = torch.log1p(s2 / (c[None, 1:, None, None] * self.mu[None, 1:, None, None].type_as(s2) + 1e-8))
 
             # s1 learnable frequential filter
             s1_conv = self.s1_conv1(s1.unsqueeze(1))
@@ -142,7 +142,7 @@ class MedleySolosClassifier(LightningModule):
             sx = self.bn(sx)
         elif self.feature == 'scat1d':
             Sx = x
-            c = self.get_c()
+            c = self.get_c().type_as(Sx)
             sx = torch.log1p(Sx / (c[None, :, None] * self.mu[None, :, None].type_as(Sx) + 1e-8))
             sx = self.bn(sx)
         elif self.feature == 'cqt':
@@ -308,18 +308,21 @@ class LeNet(nn.Module):
     def __init__(self, num_classes, in_channels):
         super().__init__()
         self.feature_extractor = nn.Sequential(            
-            nn.Conv2d(in_channels=in_channels, out_channels=6, kernel_size=5, stride=1),
+            nn.Conv2d(in_channels=in_channels, out_channels=512, kernel_size=5, stride=1),
+            nn.BatchNorm2d(512),
             nn.ReLU(),
             nn.AvgPool2d(kernel_size=2),
-            nn.Conv2d(in_channels=6, out_channels=16, kernel_size=5, stride=1),
+            nn.Conv2d(in_channels=6, out_channels=256, kernel_size=5, stride=1),
+            nn.BatchNorm2d(256),
             nn.ReLU(),
             nn.AvgPool2d(kernel_size=2),
-            nn.Conv2d(in_channels=16, out_channels=120, kernel_size=5, stride=1),
+            nn.Conv2d(in_channels=256, out_channels=128, kernel_size=5, stride=1),
+            nn.BatchNorm2d(128),
             nn.ReLU()
         )
 
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=120, out_features=84),
+            nn.Linear(in_features=128, out_features=84),
             nn.ReLU(),
             nn.Dropout(0.5),
             nn.Linear(in_features=84, out_features=num_classes),

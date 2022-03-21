@@ -4,8 +4,9 @@ import numpy as np, matplotlib.pyplot as plt, scipy
 import librosa, librosa.feature, librosa.display
 import torch
 
+from fractions import Fraction
 import openl3
-# from kymatio.torch import Scattering1D, TimeFrequencyScattering1D
+from kymatio.torch import TimeFrequencyScatteringTorch1D as TimeFrequencyScattering1D, Scattering1D
 
 from sklearn.manifold import Isomap
 
@@ -150,8 +151,32 @@ def plot_isomap(Y, cmap, out_dir):
     ax.set_zticklabels([])
     plt.subplots_adjust(wspace=0, hspace=0)
 
+    # plt.savefig(os.path.join(out_dir, 'isomap.png'))
 
-    plt.savefig(os.path.join(out_dir, 'isomap.png'))
+
+def plot_knn_regression(ratios, out_dir):
+    plt.cla()
+    yticklabels = ["1/3", "1/2", "1", "2", "3"]
+    objs = ["Carrier freq.", "Modulation freq.", "Chirp rate"]
+
+    N = len(ratios[list(ratios.keys())[0]][:, 0])
+
+    for i, ratio in enumerate(ratios.values()):
+        for obj in range(3):
+            plt.subplot(1, 3, 1+obj)
+            plt.plot(np.random.uniform(i - 0.1, i + 0.1, N), np.log2(ratio[:, obj]), ".", markersize=1)
+
+            plt.yticks(np.log2(np.array([float(Fraction(label)) for label in yticklabels])))
+            plt.xticks([i for i in range(len(ratios))])
+            plt.gca().set_xticklabels(list(ratios.keys()))
+            plt.gca().set_yticklabels(yticklabels)
+            plt.grid(linestyle="--")
+            plt.title(objs[obj])
+            if obj == 0:
+                plt.ylabel("Relative estimate")
+        
+    plt.tight_layout()
+    plt.savefig(os.path.join(out_dir, 'knn.png'))
 
 
 def run_isomaps(X, cmap, out_dir):
@@ -167,13 +192,15 @@ def run_isomaps(X, cmap, out_dir):
         models[feat] = Isomap(n_components=3, n_neighbors=40)
         Y[feat] = models[feat].fit_transform(X[feat])
 
-        plot_isomap(Y[feat], cmap, feat_dir)
+        # plot_isomap(Y[feat], cmap, feat_dir)
 
         knn = models[feat].nbrs_.kneighbors()
         ratios[feat] = np.vstack([
             np.exp(np.mean(np.log(cmap[:, knn[1][i, :]]), axis=1)) / cmap[:, i]
             for i in range(X[feat].shape[0])
         ])
+        
+    plot_knn_regression(ratios, out_dir)
 
 
 def run_isomap(
@@ -201,10 +228,10 @@ def run_isomap(
     
     audio, cmap = generate_audio(f0s, fms, gammas, duration, sr)
 
-    # mfcc = extract_mfcc(audio, f0s, fms, gammas, sr)
-    # ts = extract_time_scattering(audio.reshape(-1, audio.shape[-1]), duration, sr)
-    # jtfs = extract_jtfs(audio.reshape(-1, audio.shape[-1]), duration, sr)    
-    # ol3 = extract_openl3(audio.reshape(-1, audio.shape[-1]), sr)
+    mfcc = extract_mfcc(audio, f0s, fms, gammas, sr)
+    ts = extract_time_scattering(audio.reshape(-1, audio.shape[-1]), duration, sr)
+    jtfs = extract_jtfs(audio.reshape(-1, audio.shape[-1]), duration, sr)    
+    ol3 = extract_openl3(audio.reshape(-1, audio.shape[-1]), sr)
     strf = extract_strf(audio.reshape(-1, audio.shape[-1]), duration, sr)
 
     X = {"mfcc": mfcc, "ts": ts, "jtfs": jtfs, "ol3": ol3, "strf": strf}
