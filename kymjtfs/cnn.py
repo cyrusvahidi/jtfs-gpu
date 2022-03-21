@@ -80,8 +80,9 @@ class MedleySolosClassifier(LightningModule):
             if self.learn_adalog:
                 self.eps = nn.Parameter(torch.randn(len(self.mu)))
         elif feature == 'cqt':
-            self.n_channels = 1
-            self.cqt = CQT(sr=44100, n_bins=96, hop_length=256, fmin=32.7)
+            n_bins = 96
+            self.n_channels = n_bins
+            self.cqt = CQT(sr=44100, n_bins=n_bins, hop_length=256, fmin=32.7)
             self.a_to_db = AmplitudeToDB(stype = 'magnitude')
         
         self.bn = nn.BatchNorm2d(self.n_channels) if '1d' not in self.feature else nn.BatchNorm1d(self.n_channels)
@@ -89,7 +90,7 @@ class MedleySolosClassifier(LightningModule):
         self.setup_cnn(len(classes))                                                 
          
     def setup_cnn(self, num_classes):
-        if 'scat1d' not in self.feature:
+        if 'jtfs' in self.feature:
             # self.conv_net = LeNet(num_classes, self.n_channels)
             self.conv_net = models.efficientnet_b0()
             # modify input channels 
@@ -149,7 +150,7 @@ class MedleySolosClassifier(LightningModule):
             # cqt = load_cqt(x.cpu().numpy())
             X = self.a_to_db(self.cqt(x))
             sx = F.avg_pool2d(torch.tensor(X).type_as(x), kernel_size=(3, 8))
-            sx = sx.unsqueeze(1)
+            # sx = sx.unsqueeze(1)
             sx = self.bn(sx)
 
         # conv net

@@ -234,7 +234,7 @@ def run_isomap(
     ol3 = extract_openl3(audio.reshape(-1, audio.shape[-1]), sr)
     strf = extract_strf(audio.reshape(-1, audio.shape[-1]), duration, sr)
 
-    X = {"mfcc": mfcc, "ts": ts, "jtfs": jtfs, "ol3": ol3, "strf": strf}
+    X = {"MFCC": mfcc, "TS": ts, "JTFS": jtfs, "OPEN-L3": ol3, "STRF": strf}
 
     run_isomaps(X, cmap, out_dir)
 
