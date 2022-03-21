@@ -85,7 +85,7 @@ class MedleySolosClassifier(LightningModule):
             self.cqt = CQT(sr=44100, n_bins=n_bins, hop_length=256, fmin=32.7)
             self.a_to_db = AmplitudeToDB(stype = 'magnitude')
         
-        self.bn = nn.BatchNorm2d(self.n_channels) if '1d' not in self.feature else nn.BatchNorm1d(self.n_channels)
+        self.bn = nn.BatchNorm2d(self.n_channels) if 'jtfs' in self.feature else nn.BatchNorm1d(self.n_channels)
 
         self.setup_cnn(len(classes))                                                 
          
@@ -261,7 +261,7 @@ class MedleySolosDB(Dataset):
             fname = self.build_fname(item, '.wav') 
             audio, _ = msdb.load_audio(os.path.join(self.audio_dir, fname))
             x = audio
-            return x, y, fname
+            return x, y
 
     def __len__(self):
         return len(self.df)
