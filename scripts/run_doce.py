@@ -15,7 +15,7 @@ from timbremetrics.metrics import TripletKNNAgreement, TripletKNNPenaltyAgreemen
 from train_cnn import run_train
 
 if __name__ == "__main__":
-  doce.run.run()
+  doce.cli.main()
 
 def set(args):
   experiment = doce.Experiment(
@@ -28,14 +28,17 @@ def set(args):
 
   experiment.setPath('output', 'results/'+experiment.name+'/')
 
-  experiment.addPlan('plan',
-                     feature = ['cqt', 'scat1d', 'jtfs'],
+  experiment.addPlan('cqt',
+                     feature = ['cqt'])
+  experiment.addPlan('scattering',
+                     feature = ['scat1d', 'jtfs'],
                      c = np.array([1e-1, 1e-2, 1e-3]),
-                     learn_c = [True, False])
+                     learn_adalog = [True, False])
   experiment.setMetrics(
     accuracy = ['mean*%', 'std%'],
   )
-  experiment.instruments = []
+
+  experiment.n_runs = 3
   experiment._display.metricPrecision = 4
 
   experiment._display.bar = False
