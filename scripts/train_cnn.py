@@ -12,7 +12,8 @@ warnings.filterwarnings("ignore")
 def run_train(n_epochs = 20, 
               batch_size = 32,
               epoch_size = 8192,
-              gin_config_file = 'scripts/gin/config.gin'):
+              gin_config_file = 'scripts/gin/config.gin',
+              log=False):
     gin.parse_config_file(os.path.join(os.getcwd(), gin_config_file))
     
     early_stop_callback = EarlyStopping(monitor="val/loss_epoch", 
@@ -20,9 +21,9 @@ def run_train(n_epochs = 20,
                                         patience=5, 
                                         verbose=True, 
                                         mode="min")
-    wandb_logger = WandbLogger()
+    wandb_logger = WandbLogger() if log else None
     trainer = pl.Trainer(gpus=-1, 
-                        max_epochs=0,
+                        max_epochs=n_epochs,
                         progress_bar_refresh_rate=1, 
                         enable_checkpointing=True,
                         # callbacks=[early_stop_callback],
