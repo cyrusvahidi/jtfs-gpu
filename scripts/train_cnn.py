@@ -22,7 +22,7 @@ def run_train(n_epochs = 20,
                                         mode="min")
     wandb_logger = WandbLogger()
     trainer = pl.Trainer(gpus=-1, 
-                        max_epochs=n_epochs,
+                        max_epochs=0,
                         progress_bar_refresh_rate=1, 
                         enable_checkpointing=True,
                         # callbacks=[early_stop_callback],
@@ -32,7 +32,9 @@ def run_train(n_epochs = 20,
     model = MedleySolosClassifier()
     dataset = MedleyDataModule(batch_size=batch_size) 
     trainer.fit(model, dataset)
-    trainer.test(model, dataset)
+    x = trainer.test(model, dataset)
+    results = {'acc': x[0]['test/acc'], 'acc_instruments': [float(i) for i in x[0]['test/classwise'].values()]}
+    return results
 
 
 def main():

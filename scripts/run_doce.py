@@ -10,8 +10,6 @@ import fire
 import os
 import gin
 
-from timbremetrics.metrics import TripletKNNAgreement, TripletKNNPenaltyAgreement
-
 from train_cnn import run_train
 
 if __name__ == "__main__":
@@ -33,12 +31,12 @@ def set(args):
   experiment.addPlan('scattering',
                      feature = ['scat1d', 'jtfs'],
                      c = np.array([1e-1, 1e-2, 1e-3]),
-                     learn_adalog = [True, False])
+                     learn_adalog = [0, 1])
   experiment.setMetrics(
     accuracy = ['mean*%', 'std%'],
   )
 
-  experiment.n_runs = 3
+  experiment.nb_runs = 3
   experiment._display.metricPrecision = 4
 
   experiment._display.bar = False
@@ -46,19 +44,24 @@ def set(args):
   return experiment
 
 def step(setting, experiment):
-  if os.path.exists(experiment.path.output+setting.id()+'_accuracy.npy'):
+  if os.path.exists(experiment.path.output+setting.id()+'_acc.npy'):
     return
-  setting_triplet = np.zeros((len(experiment.datasets)))
+  setting_acc = np.zeros((len(experiment.nb_runs)))
+  setting_acc_instruments = np.zeros((experiment.n_instruments, len(experiment.nb_runs)))
+
   tic = time.time()
   print(setting.id())
 
   preprocess_gin_file(setting)
 
-  results = run_metric_learning_ptl()
-  for i, r in enumerate(results):
-    setting_triplet[i] = r[TripletKNNAgreement.__name__]
+  results = run_train()
+  setting_acc[i] = results['acc']
+  for i, r in enumerate(results['acc_instruments']):
+    setting_acc_instruments[i] = r
 
-  np.save(experiment.path.output+setting.id()+'_accuracy.npy', setting_triplet)
+
+  np.save(experiment.path.output+setting.id()+'_acc.npy', setting_acc)
+  np.save(experiment.path.output+setting.id()+'_acc_instruments.npy', setting_acc_instruments)
   duration = time.time()-tic
   np.save(experiment.path.output+setting.id()+'_duration.npy', duration)
 
