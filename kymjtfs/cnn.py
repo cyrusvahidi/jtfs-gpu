@@ -193,8 +193,7 @@ class MedleySolosClassifier(LightningModule):
         return {'optimizer': opt, 'lr_scheduler': scheduler, 'monitor':  'val/loss_epoch'}
 
     def get_c(self):
-        import pdb; pdb.set_trace()
-        c = (self.c * torch.exp(torch.tanh(self.eps))) if self.learn_adalog else torch.tensor(self.c)
+        c = (self.c * torch.exp(torch.tanh(self.eps))) if self.learn_adalog else torch.tensor([self.c])
         return c
     
     def _get_jtfs_out_dim(self):
