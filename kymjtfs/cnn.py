@@ -80,9 +80,8 @@ class MedleySolosClassifier(LightningModule):
             if self.learn_adalog:
                 self.eps = nn.Parameter(torch.randn(len(self.mu)))
         elif feature == 'cqt':
-            n_bins = 96
-            self.n_channels = n_bins
-            self.cqt = CQT(sr=44100, n_bins=n_bins, hop_length=256, fmin=32.7)
+            self.n_channels = 32
+            self.cqt = CQT(sr=44100, n_bins=96, hop_length=256, fmin=32.7)
             self.a_to_db = AmplitudeToDB(stype = 'magnitude')
         
         self.bn = nn.BatchNorm2d(self.n_channels) if 'jtfs' in self.feature else nn.BatchNorm1d(self.n_channels)
