@@ -40,6 +40,8 @@ jupyter notebook
 
 #### Scale-Rate Visualisations
 
+H E L L O
+
 #### Synthetic amplitude-modulated chirp dataset
 * Factors of variation: 
  * $f_c$ carrier frequency
