@@ -1,0 +1,68 @@
+wandb_version: 1
+
+_wandb:
+  desc: null
+  value:
+    cli_version: 0.12.11
+    code_path: code/scripts/run_doce.py
+    framework: lightning
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    m:
+    - 1: trainer/global_step
+      6:
+      - 3
+    - 1: test/loss_step
+      5: 1
+      6:
+      - 1
+    - 1: test/acc_step
+      5: 1
+      6:
+      - 1
+    - 1: test/classwise_step.accuracy_clarinet
+      5: 1
+      6:
+      - 1
+    - 1: test/classwise_step.accuracy_distorted electric guitar
+      5: 1
+      6:
+      - 1
+    - 1: test/classwise_step.accuracy_female singer
+      5: 1
+      6:
+      - 1
+    - 1: test/classwise_step.accuracy_flute
+      5: 1
+      6:
+      - 1
+    - 1: test/classwise_step.accuracy_piano
+      5: 1
+      6:
+      - 1
+    - 1: test/classwise_step.accuracy_tenor saxophone
+      5: 1
+      6:
+      - 1
+    - 1: test/classwise_step.accuracy_trumpet
+      5: 1
+      6:
+      - 1
+    - 1: test/classwise_step.accuracy_violin
+      5: 1
+      6:
+      - 1
+    python_version: 3.8.2
+    start_time: 1648132668
+    t:
+      1:
+      - 1
+      - 5
+      - 9
+      - 41
+      3:
+      - 7
+      4: 3.8.2
+      5: 0.12.11
+      8:
+      - 5

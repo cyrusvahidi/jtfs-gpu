@@ -1,0 +1,42 @@
+diff --git a/kymjtfs/cnn.py b/kymjtfs/cnn.py
+index edb8f6d..8c0087d 100644
+--- a/kymjtfs/cnn.py
++++ b/kymjtfs/cnn.py
+@@ -193,8 +193,7 @@ class MedleySolosClassifier(LightningModule):
+         return {'optimizer': opt, 'lr_scheduler': scheduler, 'monitor':  'val/loss_epoch'}
+ 
+     def get_c(self):
+-        import pdb; pdb.set_trace()
+-        c = (self.c * torch.exp(torch.tanh(self.eps))) if self.learn_adalog else torch.tensor(self.c)
++        c = (self.c * torch.exp(torch.tanh(self.eps))) if self.learn_adalog else torch.tensor([self.c])
+         return c
+     
+     def _get_jtfs_out_dim(self):
+diff --git a/scripts/gin/doce/setting.gin b/scripts/gin/doce/setting.gin
+index d53b0c7..a22b700 100644
+--- a/scripts/gin/doce/setting.gin
++++ b/scripts/gin/doce/setting.gin
+@@ -12,7 +12,7 @@ MedleySolosClassifier.csv = %MSDB_CSV
+ 
+ MedleySolosClassifier.average = 'weighted'
+ 
+-MedleySolosDB.feature = 'scat1d'
++MedleyDataModule.feature = 'scat1d'
+ MedleySolosClassifier.feature = 'scat1d'
+-MedleySolosClassifier.c = '0.1'
+-MedleySolosClassifier.learn_adalog = '0'
++MedleySolosClassifier.c = 0.1
++MedleySolosClassifier.learn_adalog = 0
+diff --git a/scripts/run_doce.py b/scripts/run_doce.py
+index d131eb9..c0dce45 100644
+--- a/scripts/run_doce.py
++++ b/scripts/run_doce.py
+@@ -72,7 +72,7 @@ def preprocess_gin_file(setting,
+   gin_base = os.path.join(os.getcwd(), gin_base)
+   gin_temp = os.path.join(os.getcwd(), gin_temp)
+   
+-  config = [f'MedleySolosDB.feature = \'{setting.feature}\'',
++  config = [f'MedleyDataModule.feature = \'{setting.feature}\'',
+             f'MedleySolosClassifier.feature = \'{setting.feature}\'',
+             f'MedleySolosClassifier.c = {setting.c}',
+             f'MedleySolosClassifier.learn_adalog = {setting.learn_adalog}']
