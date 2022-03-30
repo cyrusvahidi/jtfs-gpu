@@ -1,3 +1,5 @@
+from functools import reduce
+
 import torch 
 import torch.nn as nn
 
@@ -18,7 +20,7 @@ class ScatteringBatchNorm(nn.Module):
         self.path_shape = path_shape
 
         self.register_buffer("mu", torch.zeros(self.path_shape))
-        # self.c = torch.nn.Parameter(torch.ones(num_features, ) * 5.0) if not c else c
+        self.register_buffer("c", torch.full(self.path_shape, 1e-3))
 
     def _check_input_dim(self, x):
         if x.shape[1:3] != self.path_shape:
@@ -38,5 +40,5 @@ class ScatteringBatchNorm(nn.Module):
             
             self.mu = (1 / (batch_size + 1)) * self.mu.detach() + (batch_size / (batch_size + 1)) * batch_mu
 
-            sx = sx / (1e-3 + self.mu.view(1, self.mu.shape[0], -1, 1))
+        sx = sx / (1e-3 + self.c.view(1, self.c.shape[0], -1, 1) * self.mu.view(1, self.mu.shape[0], -1, 1))
         return sx 

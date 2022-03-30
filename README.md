@@ -1,6 +1,6 @@
  <div align="center">    
   
-# Differentiable Joint Time-Frequency Scattering in Kymatio
+# Differentiable Time-Frequency Scattering in Kymatio
 
   [![Paper](http://img.shields.io/badge/paper-arxiv.1001.2234-B31B1B.svg)](https://www.nature.com/articles/nature14539)
   <!--
@@ -13,7 +13,7 @@
   -->   
   </div>
    
-Examples of Joint Time-Frequency Scattering in Kymatio, for audio signals
+Examples of Time-Frequency Scattering in Kymatio, for audio signals
 
 ## How to run   
 First, install dependencies   
@@ -40,7 +40,22 @@ jupyter notebook
 
 #### Scale-Rate Visualisations
 
-#### Regressing f0, chirp rate and tremolo rate
+H E L L O
+
+#### Synthetic amplitude-modulated chirp dataset
+* Factors of variation: 
+ * $f_c$ carrier frequency
+ * $f_m$ amplitude modulation frequency
+ * $\gamma$ chirp rate
+
+#### Manifold Embedding of the Nearest Neighbour Graph
+* MFCCs
+* Time Scattering
+* Time-Frequency Scattering
+* Open-L3
+* Spectrotemporal Receptive Field (STRF)
+
+#### K-NN regression of synthesizer parameters
 
 #### 2-D CNN classifier
 
