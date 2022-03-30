@@ -1,0 +1,17 @@
+
+MSDB_DATA_DIR = '/import/c4dm-datasets/medley-solos-db/'
+MSDB_CSV = '/import/c4dm-datasets/medley-solos-db/annotation/Medley-solos-DB_metadata.csv'
+
+JTFS_FEATURE_DIR = '/import/c4dm-datasets/medley-solos-db/jtfs/'
+
+FEATURE = 'cqt'
+LEARN_ADALOG = True
+ACCURACY_AVG = 'weighted'
+
+MedleySolosClassifier.average = %ACCURACY_AVG
+MedleySolosClassifier.csv = %MSDB_CSV
+MedleySolosClassifier.feature = %FEATURE
+MedleySolosClassifier.learn_adalog = %LEARN_ADALOG
+
+MedleySolosDB.data_dir = %MSDB_DATA_DIR
+MedleyDataModule.feature = %FEATURE
