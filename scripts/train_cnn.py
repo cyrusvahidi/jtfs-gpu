@@ -11,17 +11,17 @@ warnings.filterwarnings("ignore")
 
 def run_train(n_epochs = 20, 
               batch_size = 32,
+              log=False,
               epoch_size = 8192,
-              gin_config_file = 'scripts/gin/config.gin',
-              log=False):
+              gin_config_file = 'scripts/gin/config.gin'):
     gin.parse_config_file(os.path.join(os.getcwd(), gin_config_file))
     
-    early_stop_callback = EarlyStopping(monitor="val/loss_epoch", 
+    early_stop_callback = EarlyStopping(monitor="val/loss", 
                                         min_delta=0.00, 
                                         patience=5, 
                                         verbose=True, 
                                         mode="min")
-    wandb_logger = WandbLogger() if log else None
+    wandb_logger = WandbLogger(project='kymatio-jtfs') if log else None
     trainer = pl.Trainer(gpus=-1, 
                         max_epochs=n_epochs,
                         progress_bar_refresh_rate=1, 

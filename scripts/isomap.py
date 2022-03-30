@@ -6,7 +6,7 @@ import torch
 
 from fractions import Fraction
 import openl3
-from kymatio.torch import TimeFrequencyScatteringTorch1D as TimeFrequencyScattering1D, Scattering1D
+from kymatio.torch import TimeFrequencyScattering1D, Scattering1D
 
 from sklearn.manifold import Isomap
 
@@ -60,6 +60,7 @@ def extract_time_scattering(audio, duration, sr, **ts_kwargs):
     scat = Scattering1D(shape=(N, ),
                         T=N,
                         Q=1,
+                        # Q=8,
                         J=12).cuda()
     
     X = torch.tensor(audio).cuda()
@@ -151,11 +152,12 @@ def plot_isomap(Y, cmap, out_dir):
     ax.set_zticklabels([])
     plt.subplots_adjust(wspace=0, hspace=0)
 
-    # plt.savefig(os.path.join(out_dir, 'isomap.png'))
+    plt.savefig(os.path.join(out_dir, 'isomap.png'))
 
 
 def plot_knn_regression(ratios, out_dir):
-    plt.cla()
+    plt.clf()
+    fig = plt.figure(figsize=plt.figaspect(0.5))
     yticklabels = ["1/3", "1/2", "1", "2", "3"]
     objs = ["Carrier freq.", "Modulation freq.", "Chirp rate"]
 
@@ -179,7 +181,7 @@ def plot_knn_regression(ratios, out_dir):
     plt.savefig(os.path.join(out_dir, 'knn.png'))
 
 
-def run_isomaps(X, cmap, out_dir):
+def run_isomaps(X, cmap, out_dir, n_neighbors=40):
 
     Y = {}
     ratios = {}
@@ -189,10 +191,10 @@ def run_isomaps(X, cmap, out_dir):
         feat_dir = os.path.join(out_dir, feat)
 
         os.makedirs(feat_dir, exist_ok=True)
-        models[feat] = Isomap(n_components=3, n_neighbors=40)
+        models[feat] = Isomap(n_components=3, n_neighbors=n_neighbors)
         Y[feat] = models[feat].fit_transform(X[feat])
 
-        # plot_isomap(Y[feat], cmap, feat_dir)
+        plot_isomap(Y[feat], cmap, feat_dir)
 
         knn = models[feat].nbrs_.kneighbors()
         ratios[feat] = np.vstack([
@@ -228,13 +230,15 @@ def run_isomap(
     
     audio, cmap = generate_audio(f0s, fms, gammas, duration, sr)
 
-    mfcc = extract_mfcc(audio, f0s, fms, gammas, sr)
+    # mfcc = extract_mfcc(audio, f0s, fms, gammas, sr)
     ts = extract_time_scattering(audio.reshape(-1, audio.shape[-1]), duration, sr)
     jtfs = extract_jtfs(audio.reshape(-1, audio.shape[-1]), duration, sr)    
-    ol3 = extract_openl3(audio.reshape(-1, audio.shape[-1]), sr)
-    strf = extract_strf(audio.reshape(-1, audio.shape[-1]), duration, sr)
+    # ol3 = extract_openl3(audio.reshape(-1, audio.shape[-1]), sr)
+    # strf = extract_strf(audio.reshape(-1, audio.shape[-1]), duration, sr)
 
-    X = {"MFCC": mfcc, "TS": ts, "JTFS": jtfs, "OPEN-L3": ol3, "STRF": strf}
+    # X = {"MFCC": mfcc, "TS": ts, "JTFS": jtfs, "OPEN-L3": ol3, "STRF": strf}
+    # X = {"MFCC": mfcc, "TS": ts, "JTFS": jtfs}
+    X = {"TS": ts, "JTFS": jtfs}
 
     run_isomaps(X, cmap, out_dir)
 

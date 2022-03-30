@@ -12,7 +12,7 @@ from torchaudio.transforms import AmplitudeToDB
 from torchmetrics import Accuracy, ClasswiseWrapper
 from pytorch_lightning.core.lightning import LightningModule
 from nnAudio.features import CQT
-from kymatio.torch import TimeFrequencyScatteringTorch1D as TimeFrequencyScattering1D
+from kymatio.torch import TimeFrequencyScattering1D
 
 from kymjtfs.batch_norm import ScatteringBatchNorm
 
@@ -128,8 +128,8 @@ class MedleySolosClassifier(LightningModule):
 
             # apply AdaLog
             c = self.get_c().type_as(s1)
-            s1 = torch.log1p(s1 / (c[None, :1, None] * self.mu[:1].type_as(s1) + 1e-8))
-            s2 = torch.log1p(s2 / (c[None, 1:, None, None] * self.mu[None, 1:, None, None].type_as(s2) + 1e-8))
+            s1 = s1 / (c[None, :1, None] * self.mu[:1].type_as(s1) + 1e-8)
+            s2 = s2 / (c[None, 1:, None, None] * self.mu[None, 1:, None, None].type_as(s2) + 1e-8)
 
             # s1 learnable frequential filter
             s1_conv = self.s1_conv1(s1.unsqueeze(1))
@@ -138,7 +138,7 @@ class MedleySolosClassifier(LightningModule):
             
             sx = torch.cat([s1_conv, s2], dim=1)[:, :, :32, :]
             # log1p and batch norm
-            # sx = torch.log1p(sx)
+            sx = torch.log1p(sx)
             sx = self.bn(sx)
         elif self.feature == 'scat1d':
             Sx = x
@@ -189,8 +189,14 @@ class MedleySolosClassifier(LightningModule):
     
     def configure_optimizers(self):
         opt = torch.optim.Adam(self.parameters(), lr=self.lr)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, factor=0.5, patience=5)
-        return {'optimizer': opt, 'lr_scheduler': scheduler, 'monitor':  'val/loss_epoch'}
+        scheduler = torch.optim.lr_scheduler.CyclicLR(opt, 
+                                                      base_lr=self.lr, 
+                                                      max_lr=self.lr * 4, 
+                                                      step_size_up=1024, 
+                                                      mode='triangular', 
+                                                      gamma=1.0, 
+                                                      cycle_momentum=False)
+        return {'optimizer': opt, 'lr_scheduler': scheduler}
 
     def get_c(self):
         c = (self.c * torch.exp(torch.tanh(self.eps))) if self.learn_adalog else torch.tensor([self.c])
