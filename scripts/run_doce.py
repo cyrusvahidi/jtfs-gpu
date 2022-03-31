@@ -45,8 +45,8 @@ def set(args):
   return experiment
 
 def step(setting, experiment):
-  # if os.path.exists(experiment.path.output+setting.id()+'_acc.npy'):
-    # return
+  if os.path.exists(experiment.path.output+setting.id()+'_acc.npy'):
+    return
   setting_acc = np.zeros((experiment.nb_runs, ))
   setting_acc_instruments = np.zeros((experiment.nb_runs, experiment.n_classes))
 
