@@ -4,7 +4,7 @@ from tqdm import tqdm
 
 from kymjtfs.cnn import MedleyDataModule
 
-from kymatio.torch import TimeFrequencyScatteringTorch1D as TimeFrequencyScattering1D, Scattering1D
+from kymatio.torch import TimeFrequencyScattering1D, Scattering1D
 
 
 def make_directory(dir_path):
@@ -52,11 +52,11 @@ class JTFSExtractor(Extractor):
                  data_module,
                  jtfs_kwargs={
                     'shape': 2**16, 
-                    'J': 12, 
+                    'J': 8, 
                     'Q': 16, 
                     'F': 4, 
                     'T': 2**11,
-                    'out_3D': True,
+                    'out_3D': False,
                     'average_fr': True,
                     'max_pad_factor': 1,
                     'max_pad_factor_fr': 1}):
@@ -80,15 +80,24 @@ class JTFSExtractor(Extractor):
                 audio = normalize_audio(audio)
                 Sx = self.jtfs(audio)
 
-                if subset == 'train':
-                    # collect S1 and S2 integrated over time and lambda
-                    s1, s2 = Sx[0].mean(dim=-1).mean(dim=-1), Sx[1].mean(dim=-1).mean(dim=-1)[0, :]
-                    self.lambda_train.append(torch.concat([s1, s2]))
+                if self.jtfs_kwargs['out_3D']:
+                    if subset == 'train':
+                        # collect S1 and S2 integrated over time and lambda
+                        s1, s2 = Sx[0].mean(dim=-1).mean(dim=-1), Sx[1].mean(dim=-1).mean(dim=-1)[0, :]
+                        self.lambda_train.append(torch.concat([s1, s2]))
 
-                Sx = [s.cpu().numpy() for s in Sx]
-                out_path = os.path.join(subset_dir, os.path.splitext(fname)[0])
-                np.save(out_path + '_S1', Sx[0])
-                np.save(out_path + '_S2', Sx[1])
+                    Sx = [s.cpu().numpy() for s in Sx]
+                    out_path = os.path.join(subset_dir, os.path.splitext(fname)[0])
+                    np.save(out_path + '_S1', Sx[0])
+                    np.save(out_path + '_S2', Sx[1])
+                else: 
+                    Sx = Sx[0]
+                    if subset == 'train':
+                        # collect S1 and S2 integrated over time and lambda
+                        s_mu = Sx.mean(dim=-1)
+                        self.lambda_train.append(s_mu)
+                    out_path = os.path.join(subset_dir, os.path.splitext(fname)[0])
+                    np.save(out_path, Sx.cpu().numpy())
 
 
 class Scat1DExtractor(Extractor):
@@ -142,9 +151,9 @@ def process_msdb_jtfs(data_dir='/import/c4dm-datasets/medley-solos-db/',
         data_dir: source data directory for medley-solos-db download 
         feature: ['jtfs', 'scat1d']
     """
-    output_dir = os.path.join(data_dir, feature)
+    output_dir = os.path.join(data_dir, feature + '1d')
     make_directory(output_dir)
-    data_module = MedleyDataModule(data_dir, batch_size=32)
+    data_module = MedleyDataModule(data_dir, batch_size=32, feature=None)
     data_module.setup()
     
     if feature == 'jtfs':
