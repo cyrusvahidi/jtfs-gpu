@@ -129,14 +129,19 @@ class MedleySolosClassifier(LightningModule):
 
             # apply AdaLog
             c = self.get_c().type_as(s1)
-            s1 = s1 / (c[None, :1, None] * self.mu[:1].type_as(s1) + 1e-8)
-            s2 = s2 / (c[None, 1:, None, None] * self.mu[None, 1:, None, None].type_as(s2) + 1e-8)
+            if c.shape[0] == 1:
+                c1, c2 = c, c
+            else:
+                c1, c2 = c[None, :1, None], c[None, 1:, None, None]
+
+            s1 = s1 / (c1 * self.mu[:1].type_as(s1) + 1e-8)
+            s2 = s1 / (c1 * self.mu[:1].type_as(s1) + 1e-8)
 
             # s1 learnable frequential filter
             s1_conv = self.s1_conv1(s1.unsqueeze(1))
             s1_conv = F.pad(s1_conv, 
                     (0, 0, s2.shape[-2] - s1_conv.shape[-2], 0))
-            
+            # import pdb; pdb.set_trace() 
             sx = torch.cat([s1_conv, s2], dim=1)[:, :, :32, :]
             # log1p and batch norm
             sx = torch.log1p(sx)
@@ -269,7 +274,7 @@ class MedleySolosDB(Dataset):
             fname = self.build_fname(item, '.wav') 
             audio, _ = msdb.load_audio(os.path.join(self.audio_dir, fname))
             x = audio
-            return x, y
+            return x, y, fname
 
     def __len__(self):
         return len(self.df)
