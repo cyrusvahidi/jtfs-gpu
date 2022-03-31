@@ -57,6 +57,7 @@ class MedleySolosClassifier(LightningModule):
         self.learn_adalog = learn_adalog
 
         self.acc_metric = Accuracy(num_classes=len(classes), average=average)
+        self.acc_metric_macro = Accuracy(num_classes=len(classes), average='macro')
         self.classwise_acc = ClasswiseWrapper(Accuracy(num_classes=len(classes), average=None), 
                                                        labels=classes)
         self.loss = nn.CrossEntropyLoss(weight=self.get_class_weight(csv))
@@ -168,6 +169,8 @@ class MedleySolosClassifier(LightningModule):
         self.log(f'{fold}/loss', loss, on_step=True, on_epoch=True, prog_bar=True)
         self.log(f'{fold}/acc', acc, on_step=True, on_epoch=True, prog_bar=True)
         if fold == 'test':
+            macro_avg = self.acc_metric_macro(logits, y)
+            self.log(f'{fold}/avg_macro', macro_avg, on_step=False, on_epoch=True, prog_bar=True)
             self.log(f'{fold}/classwise', class_acc, on_step=True, on_epoch=True, prog_bar=True)
         
         return {f'loss': loss, f'{fold}/acc': acc, f'{fold}/classwise': class_acc}

@@ -72,6 +72,10 @@ def preprocess_gin_file(setting,
   gin_base = os.path.join(os.getcwd(), gin_base)
   gin_temp = os.path.join(os.getcwd(), gin_temp)
   
+  if setting.feature == 'cqt':
+    setting.c = None
+    setting.learn_adalog = None
+
   config = [f'MedleyDataModule.feature = \'{setting.feature}\'',
             f'MedleySolosClassifier.feature = \'{setting.feature}\'',
             f'MedleySolosClassifier.c = {setting.c}',
