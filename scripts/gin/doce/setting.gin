@@ -12,7 +12,7 @@ MedleySolosClassifier.csv = %MSDB_CSV
 
 MedleySolosClassifier.average = 'weighted'
 
-MedleyDataModule.feature = 'jtfs'
-MedleySolosClassifier.feature = 'jtfs'
-MedleySolosClassifier.c = 0.001
-MedleySolosClassifier.learn_adalog = 1
+MedleyDataModule.feature = 'scat1d'
+MedleySolosClassifier.feature = 'scat1d'
+MedleySolosClassifier.c = 0.1
+MedleySolosClassifier.learn_adalog = 0
