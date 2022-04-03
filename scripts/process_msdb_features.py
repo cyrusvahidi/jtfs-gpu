@@ -53,13 +53,13 @@ class JTFSExtractor(Extractor):
                  jtfs_kwargs={
                     'shape': 2**16, 
                     'J': 8, 
-                    'Q': 16, 
-                    'F': 4, 
+                    'Q': 8, 
+                    'F': 2, 
                     'T': 2**11,
-                    'out_3D': False,
+                    'out_3D': True,
                     'average_fr': True,
-                    'max_pad_factor': 1,
-                    'max_pad_factor_fr': 1}):
+                    'max_pad_factor': 3,
+                    'max_pad_factor_fr': 3}):
         super().__init__(output_dir, data_module)
         self.output_dir = output_dir
         self.jtfs_kwargs = jtfs_kwargs
@@ -81,11 +81,11 @@ class JTFSExtractor(Extractor):
                 Sx = self.jtfs(audio)
 
                 if self.jtfs_kwargs['out_3D']:
+                    import pdb; pdb.set_trace()
                     if subset == 'train':
                         # collect S1 and S2 integrated over time and lambda
                         s1, s2 = Sx[0].mean(dim=-1).mean(dim=-1), Sx[1].mean(dim=-1).mean(dim=-1)[0, :]
                         self.lambda_train.append(torch.concat([s1, s2]))
-
                     Sx = [s.cpu().numpy() for s in Sx]
                     out_path = os.path.join(subset_dir, os.path.splitext(fname)[0])
                     np.save(out_path + '_S1', Sx[0])
@@ -143,7 +143,8 @@ class Scat1DExtractor(Extractor):
 
 
 def process_msdb_jtfs(data_dir='/import/c4dm-datasets/medley-solos-db/',
-                      feature='jtfs'):
+                      feature='jtfs',
+                      out_dir_id='j'):
     """ Script to save Medley-Solos-DB time-frequency scattering coefficients and stats
         to disk
     Args:
@@ -151,7 +152,7 @@ def process_msdb_jtfs(data_dir='/import/c4dm-datasets/medley-solos-db/',
         data_dir: source data directory for medley-solos-db download 
         feature: ['jtfs', 'scat1d']
     """
-    output_dir = os.path.join(data_dir, feature + '1d')
+    output_dir = os.path.join(data_dir, feature + out_dir_id)
     make_directory(output_dir)
     data_module = MedleyDataModule(data_dir, batch_size=32, feature=None)
     data_module.setup()
