@@ -62,7 +62,7 @@ class MedleySolosClassifier(LightningModule):
                                                        labels=classes)
         self.loss = nn.CrossEntropyLoss(weight=self.get_class_weight(csv))
         
-        if feature == 'jtfs' or feature == 'scat1d':
+        if 'jtfs' in feature or feature == 'scat1d':
             stats_dir = os.path.join(stats_dir, feature)
             self.mu = torch.tensor(np.load(os.path.join(stats_dir, 'stats/mu.npy')))
             
@@ -74,7 +74,7 @@ class MedleySolosClassifier(LightningModule):
                     nn.AvgPool2d(kernel_size=(4, 1), padding=(2, 0))
                 )
                 self.n_channels = len(self.mu) + (s1_channels - 1)
-            elif feature == 'scat1d':
+            elif feature == 'scat1d' or feature == 'jtfs1d':
                 self.n_channels = len(self.mu)
 
             self.c = c 
@@ -90,7 +90,7 @@ class MedleySolosClassifier(LightningModule):
         self.setup_cnn(len(classes))                                                 
          
     def setup_cnn(self, num_classes):
-        if 'jtfs' in self.feature:
+        if self.feature == 'jtfs':
             # self.conv_net = LeNet(num_classes, self.n_channels)
             self.conv_net = models.efficientnet_b0()
             # modify input channels 
@@ -134,8 +134,8 @@ class MedleySolosClassifier(LightningModule):
             else:
                 c1, c2 = c[None, :1, None], c[None, 1:, None, None]
 
-            s1 = s1 / (c1 * self.mu[:1].type_as(s1) + 1e-8)
-            s2 = s1 / (c1 * self.mu[:1].type_as(s1) + 1e-8)
+            s1 = s1 / (c1 * self.mu[None, :1, None].type_as(s1) + 1e-8)
+            s2 = s2 / (c2 * self.mu[None, 1:, None, None].type_as(s1) + 1e-8)
 
             # s1 learnable frequential filter
             s1_conv = self.s1_conv1(s1.unsqueeze(1))
@@ -146,7 +146,7 @@ class MedleySolosClassifier(LightningModule):
             # log1p and batch norm
             sx = torch.log1p(sx)
             sx = self.bn(sx)
-        elif self.feature == 'scat1d':
+        elif self.feature == 'scat1d' or self.feature == 'jtfs1d':
             Sx = x
             c = self.get_c().type_as(Sx)
             sx = torch.log1p(Sx / (c[None, :, None] * self.mu[None, :, None].type_as(Sx) + 1e-8))
@@ -225,7 +225,8 @@ class MedleySolosDB(Dataset):
     def __init__(self, 
                  data_dir='/import/c4dm-datasets/medley-solos-db/', 
                  subset='training',
-                 feature='jtfs'):
+                 feature='jtfs',
+                 feature_id=''):
         super().__init__()
         
         self.msdb = msdb.Dataset(data_dir)
@@ -234,8 +235,8 @@ class MedleySolosDB(Dataset):
         self.subset = subset
         self.feature = feature
 
-        if feature == 'jtfs' or feature == 'scat1d':
-            feature_dir = os.path.join(data_dir, feature)
+        if 'jtfs' in feature or feature == 'scat1d':
+            feature_dir = os.path.join(data_dir, feature + feature_id)
             self.feature_dir = os.path.join(feature_dir, subset)
         elif feature == 'cqt':
             self.feature_dir = None
@@ -266,7 +267,7 @@ class MedleySolosDB(Dataset):
             s2 = np.load(os.path.join(self.feature_dir, s2_fname))
             Sx = (s1, s2)
             return Sx, y
-        elif self.feature == 'scat1d':
+        elif self.feature == 'scat1d' or self.feature == 'jtfs1d':
             fname = self.build_fname(item, '.npy') 
             Sx = np.load(os.path.join(self.feature_dir, fname))
             return Sx, y
@@ -372,3 +373,139 @@ class LeNet1D(nn.Module):
 
     def forward(self, x):
         return self.classifier(self.feature_extractor(x).flatten(1))
+
+from torchvision.ops import StochasticDepth
+
+class SqueezeExciteNd(nn.Module):
+    def __init__(self, num_channels, reduction_ratio=16):
+        """num_channels: No of input channels
+           reduction_ratio: By how much should the num_channels should be
+            reduced
+        """
+        super().__init__()
+        num_channels_reduced = num_channels // reduction_ratio
+        assert reduction_ratio <= num_channels, (reduction_ratio, num_channels)
+
+        self.reduction_ratio = reduction_ratio
+        # nn.AdaptiveAvgPool2d
+        self.fc1 = nn.Linear(num_channels, num_channels_reduced, bias=True)
+        self.fc2 = nn.Linear(num_channels_reduced, num_channels, bias=True)
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, input_tensor):
+        batch_size, num_channels, *spatial = input_tensor.size()
+        # Average along each channel
+        squeeze_tensor = input_tensor.view(batch_size, num_channels, -1
+                                           ).mean(dim=-1)
+
+        # channel excitation
+        fc_out_1 = self.relu(self.fc1(
+            squeeze_tensor.view(batch_size, num_channels)))
+        fc_out_2 = self.sigmoid(self.fc2(fc_out_1))
+
+        view_shape = (batch_size, num_channels) + (1,) * len(spatial)
+        output_tensor = torch.mul(input_tensor, fc_out_2.view(*view_shape))
+
+        return output_tensor
+
+class ConvNormActivation(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1, groups=1, act=True):
+        super().__init__()
+
+        self.block = nn.Sequential(
+            nn.Conv1d(in_channels, 
+                   out_channels, 
+                   kernel_size=kernel_size, 
+                   stride=stride, 
+                   padding=padding, 
+                   groups=groups,
+                   bias=False),
+            nn.BatchNorm1d(out_channels, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.SiLU() if act else nn.Identity()
+        )
+
+    def forward(self, input_tensor):
+        return self.block(input_tensor)
+
+
+
+class MBConvN(nn.Module):
+  """MBConv with an expansion factor of N, plus squeeze-and-excitation"""
+  def __init__(self, n_in, n_out, expansion_factor,
+               kernel_size=3, stride=1, r=24, p=0):
+    super().__init__()
+
+    padding = (kernel_size - 1) // 2
+    expanded = expansion_factor * n_in
+    self.skip_connection = (n_in == n_out) and (stride == 1)
+
+    self.expand_pw = nn.Identity() if (expansion_factor == 1) else ConvNormActivation(n_in, expanded, kernel_size=1)
+    self.depthwise = ConvNormActivation(expanded, expanded, kernel_size=kernel_size, 
+                                        stride=stride, padding=padding, groups=expanded)
+    self.se = SqueezeExciteNd(expanded, r=r)
+    self.reduce_pw = ConvNormActivation(expanded, n_out, kernel_size=1, act=False)
+    self.dropsample = StochasticDepth(p, mode='row')
+  
+  def forward(self, x):
+    residual = x
+
+    x = self.expand_pw(x)
+    x = self.depthwise(x)
+    x = self.se(x)
+    x = self.reduce_pw(x)
+
+    if self.skip_connection:
+      x = self.dropsample(x)
+      x = x + residual
+
+    return x
+
+class MBConv1(MBConvN):
+  def __init__(self, n_in, n_out, kernel_size=3, stride=1, r=24, p=0):
+    super().__init__(n_in, n_out, expansion_factor=1,
+                     kernel_size=kernel_size, stride=stride,
+                     r=r, p=p)
+    
+ 
+class MBConv6(MBConvN):
+  def __init__(self, n_in, n_out, kernel_size=3,
+               stride=1, r=24, p=0):
+    super().__init__(n_in, n_out, expansion_factor=6,
+                     kernel_size=kernel_size, stride=stride,
+                     r=r, p=p)
+
+
+class EfficientNet1d(nn.Module):
+    def __init__(self, in_channels, num_classes):
+
+        self.features = nn.Sequential(
+            ConvNormActivation(in_channels, 32, kernel_size=3, stride=2), 
+            MBConv1(32, 16, kernel_size=3, r=4, p=0.0),
+            MBConv6(16, 24, kernel_size=3, stride=2, r=24, p=0.0125),
+            MBConv6(24, 24, kernel_size=3, stride=1, r=24, p=0.025),
+            MBConv6(24, 40, kernel_size=5, stride=2, r=24, p=0.0375)
+            MBConv6(40, 240, kernel_size=5, stride=1, r=24, p=0.05), 
+            MBConv6(240, 80, kernel_size=3, stride=2, r=24, p=0.0625), 
+            MBConv6(80, 80, kernel_size=3, stride=1, r=24, p=0.075), 
+            MBConv6(80, 80, kernel_size=3, stride=1, r=24, p=0.0875), 
+            MBConv6(80, 112, kernel_size=5, stride=1, r=24, p=0.1), 
+            MBConv6(112, 112, kernel_size=5, stride=1, r=24, p=0.1125), 
+            MBConv6(112, 112, kernel_size=5, stride=1, r=24, p=0.125), 
+            MBConv6(112, 192, kernel_size=5, stride=2, r=24, p=0.1375), 
+            MBConv6(192, 192, kernel_size=5, stride=1, r=24, p=0.15), 
+            MBConv6(192, 192, kernel_size=5, stride=1, r=24, p=0.1625), 
+            MBConv6(192, 192, kernel_size=5, stride=1, r=24, p=0.175), 
+            MBConv6(192, 320, kernel_size=3, stride=1, r=24, p=0.1875), 
+            ConvNormActivation(320, 1280, kernel_size=1, stride=1),
+        )
+        self.avg_pool = nn.AdaptiveAvgPool1d(output_size=1)
+        self.classifier = nn.Sequential(
+            nn.Dropout(0.2),
+            nn.Linear(1280, num_classes, bias=True)
+        )
+    
+    def forward(self, x):
+        x = self.features(x)
+        x = self.avg_pool(x)
+        y = self.classifier(x)
