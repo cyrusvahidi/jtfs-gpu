@@ -14,5 +14,5 @@ MedleySolosClassifier.average = 'weighted'
 
 MedleyDataModule.feature = 'jtfs'
 MedleySolosClassifier.feature = 'jtfs'
-MedleySolosClassifier.c = 0.01
+MedleySolosClassifier.c = 0.001
 MedleySolosClassifier.learn_adalog = 1
