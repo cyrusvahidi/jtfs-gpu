@@ -52,9 +52,9 @@ class JTFSExtractor(Extractor):
                  data_module,
                  jtfs_kwargs={
                     'shape': 2**16, 
-                    'J': 8, 
-                    'Q': 8, 
-                    'F': 2, 
+                    'J': 12, 
+                    'Q': 16, 
+                    'F': 4, 
                     'T': 2**11,
                     'out_3D': True,
                     'average_fr': True,
@@ -81,7 +81,6 @@ class JTFSExtractor(Extractor):
                 Sx = self.jtfs(audio)
 
                 if self.jtfs_kwargs['out_3D']:
-                    import pdb; pdb.set_trace()
                     if subset == 'train':
                         # collect S1 and S2 integrated over time and lambda
                         s1, s2 = Sx[0].mean(dim=-1).mean(dim=-1), Sx[1].mean(dim=-1).mean(dim=-1)[0, :]
@@ -154,7 +153,7 @@ def process_msdb_jtfs(data_dir='/import/c4dm-datasets/medley-solos-db/',
     """
     output_dir = os.path.join(data_dir, feature + out_dir_id)
     make_directory(output_dir)
-    data_module = MedleyDataModule(data_dir, batch_size=32, feature=None)
+    data_module = MedleyDataModule(data_dir, batch_size=32, feature='')
     data_module.setup()
     
     if feature == 'jtfs':

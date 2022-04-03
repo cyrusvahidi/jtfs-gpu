@@ -101,7 +101,8 @@ class MedleySolosClassifier(LightningModule):
             self.conv_net.classifier[1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)    
         else:
             # 1d convnet
-            self.conv_net = LeNet1D(num_classes, self.n_channels)
+            # self.conv_net = LeNet1D(num_classes, self.n_channels)
+            self.conv_net = EfficientNet1d(self.n_channels, num_classes)
 
     def setup_jtfs(self):
         self.jtfs = TimeFrequencyScattering1D(
