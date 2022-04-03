@@ -508,3 +508,4 @@ class EfficientNet1d(nn.Module):
         x = self.features(x)
         x = self.avg_pool(x).squeeze(-1)
         y = self.classifier(x)
+        return y
