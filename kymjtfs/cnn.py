@@ -377,16 +377,15 @@ class LeNet1D(nn.Module):
 from torchvision.ops import StochasticDepth
 
 class SqueezeExciteNd(nn.Module):
-    def __init__(self, num_channels, reduction_ratio=16):
+    def __init__(self, num_channels, r=16):
         """num_channels: No of input channels
-           reduction_ratio: By how much should the num_channels should be
-            reduced
+           r: By how much should the num_channels should be reduced
         """
         super().__init__()
-        num_channels_reduced = num_channels // reduction_ratio
-        assert reduction_ratio <= num_channels, (reduction_ratio, num_channels)
+        num_channels_reduced = num_channels // r
+        assert r <= num_channels, (r, num_channels)
 
-        self.reduction_ratio = reduction_ratio
+        self.r = r
         # nn.AdaptiveAvgPool2d
         self.fc1 = nn.Linear(num_channels, num_channels_reduced, bias=True)
         self.fc2 = nn.Linear(num_channels_reduced, num_channels, bias=True)
@@ -410,7 +409,7 @@ class SqueezeExciteNd(nn.Module):
         return output_tensor
 
 class ConvNormActivation(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1, groups=1, act=True):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=0, groups=1, act=True):
         super().__init__()
 
         self.block = nn.Sequential(
@@ -469,8 +468,7 @@ class MBConv1(MBConvN):
     
  
 class MBConv6(MBConvN):
-  def __init__(self, n_in, n_out, kernel_size=3,
-               stride=1, r=24, p=0):
+  def __init__(self, n_in, n_out, kernel_size=3, stride=1, r=24, p=0):
     super().__init__(n_in, n_out, expansion_factor=6,
                      kernel_size=kernel_size, stride=stride,
                      r=r, p=p)
@@ -478,13 +476,13 @@ class MBConv6(MBConvN):
 
 class EfficientNet1d(nn.Module):
     def __init__(self, in_channels, num_classes):
-
+        super().__init__()
         self.features = nn.Sequential(
             ConvNormActivation(in_channels, 32, kernel_size=3, stride=2), 
             MBConv1(32, 16, kernel_size=3, r=4, p=0.0),
             MBConv6(16, 24, kernel_size=3, stride=2, r=24, p=0.0125),
             MBConv6(24, 24, kernel_size=3, stride=1, r=24, p=0.025),
-            MBConv6(24, 40, kernel_size=5, stride=2, r=24, p=0.0375)
+            MBConv6(24, 40, kernel_size=5, stride=2, r=24, p=0.0375),
             MBConv6(40, 240, kernel_size=5, stride=1, r=24, p=0.05), 
             MBConv6(240, 80, kernel_size=3, stride=2, r=24, p=0.0625), 
             MBConv6(80, 80, kernel_size=3, stride=1, r=24, p=0.075), 
@@ -497,7 +495,7 @@ class EfficientNet1d(nn.Module):
             MBConv6(192, 192, kernel_size=5, stride=1, r=24, p=0.1625), 
             MBConv6(192, 192, kernel_size=5, stride=1, r=24, p=0.175), 
             MBConv6(192, 320, kernel_size=3, stride=1, r=24, p=0.1875), 
-            ConvNormActivation(320, 1280, kernel_size=1, stride=1),
+            ConvNormActivation(320, 1280, kernel_size=1, stride=1)
         )
         self.avg_pool = nn.AdaptiveAvgPool1d(output_size=1)
         self.classifier = nn.Sequential(
@@ -507,5 +505,5 @@ class EfficientNet1d(nn.Module):
     
     def forward(self, x):
         x = self.features(x)
-        x = self.avg_pool(x)
+        x = self.avg_pool(x).squeeze(-1)
         y = self.classifier(x)
