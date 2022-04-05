@@ -17,15 +17,6 @@ from kymatio.torch import TimeFrequencyScattering1D
 from kymjtfs.batch_norm import ScatteringBatchNorm
 
 
-def load_cqt(x, n_bins=96, n_bins_per_octave=12, fmin=32.70):
-    freqs = librosa.cqt_frequencies(n_bins=n_bins, fmin=fmin)
-    a_weights_db = librosa.A_weighting(freqs, min_db=-80.0)
-    a_weights = (10.0 ** (a_weights_db / 10))
-    cqt = np.abs(librosa.cqt(x, sr=44100, n_bins=n_bins, hop_length=256, fmin=fmin))
-    X = np.log1p(1000.0 * cqt * a_weights[:, np.newaxis]).astype(np.float32)
-    return X
-
-
 @gin.configurable
 class MedleySolosClassifier(LightningModule):
     def __init__(self, 
@@ -85,8 +76,8 @@ class MedleySolosClassifier(LightningModule):
                 self.register_parameter('eps', nn.Parameter(torch.randn(len(self.mu))))
         elif feature == 'cqt':
             self.n_channels = 1
-            self.cqt = CQT(sr=44100, n_bins=96, hop_length=256, fmin=32.7)
-            self.a_to_db = AmplitudeToDB(stype = 'magnitude')
+            # self.cqt = CQT(sr=44100, n_bins=96, hop_length=256, fmin=32.7)
+            # self.a_to_db = AmplitudeToDB(stype = 'magnitude')
         
         self.bn = nn.BatchNorm2d(self.n_channels) if self.is_2d_conv else nn.BatchNorm1d(self.n_channels)
 
@@ -154,8 +145,8 @@ class MedleySolosClassifier(LightningModule):
             sx = torch.log1p(Sx / (c[None, :, None] * self.mu[None, :, None].type_as(Sx) + 1e-8))
             sx = self.bn(sx)
         elif self.feature == 'cqt':
-            X = self.a_to_db(self.cqt(x))
-            sx = F.avg_pool2d(torch.tensor(X).type_as(x), kernel_size=(3, 8))
+            # X = self.a_to_db(self.cqt(x))
+            sx = F.avg_pool2d(x, kernel_size=(3, 8))
             sx = sx.unsqueeze(1)
             sx = self.bn(sx)
 
@@ -243,11 +234,13 @@ class MedleySolosDB(Dataset):
         self.feature = feature.split('_')[0]
         self.feature_spec = feature.split('_')[1:]
 
-        if 'jtfs' in feature or 'scat1d' in feature:
-            feature_dir = os.path.join(data_dir, feature)
-            self.feature_dir = os.path.join(feature_dir, subset)
-        elif feature == 'cqt':
-            self.feature_dir = None
+        # if 'jtfs' in feature or 'scat1d' in feature:
+        #     feature_dir = os.path.join(data_dir, feature)
+        #     self.feature_dir = os.path.join(feature_dir, subset)
+        # elif feature == 'cqt':
+        #     self.feature_dir = None
+        feature_dir = os.path.join(data_dir, feature)
+        self.feature_dir = os.path.join(feature_dir, subset)
         
         df = pd.read_csv(os.path.join(self.csv_dir, 'Medley-solos-DB_metadata.csv'))
         self.df = df.loc[df['subset'] == subset]
@@ -275,7 +268,7 @@ class MedleySolosDB(Dataset):
             s2 = np.load(os.path.join(self.feature_dir, s2_fname))
             Sx = (s1, s2)
             return Sx, y
-        elif self.feature == 'scat1d' or (self.feature == 'jtfs' and '2D' in self.feature_spec):
+        elif self.feature == 'scat1d' or (self.feature == 'jtfs' and '2D' in self.feature_spec) or self.feature == 'cqt':
             fname = self.build_fname(item, '.npy') 
             Sx = np.load(os.path.join(self.feature_dir, fname))
             return Sx, y
