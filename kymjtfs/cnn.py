@@ -53,7 +53,8 @@ class MedleySolosClassifier(LightningModule):
 
         self.jtfs_kwargs = jtfs_kwargs
         self.lr = lr
-        self.feature = feature
+        self.feature = feature.split('_')[0]
+        self.feature_spec = feature.split('_')[1:]
         self.learn_adalog = learn_adalog
 
         self.acc_metric = Accuracy(num_classes=len(classes), average=average)
@@ -62,11 +63,13 @@ class MedleySolosClassifier(LightningModule):
                                                        labels=classes)
         self.loss = nn.CrossEntropyLoss(weight=self.get_class_weight(csv))
         
-        if 'jtfs' in feature or feature == 'scat1d':
+        self.is_2d_conv = self.feature == 'cqt' or (self.feature == 'jtfs' and '3D' in self.feature_spec)
+
+        if self.feature == 'jtfs' or self.feature == 'scat1d':
             stats_dir = os.path.join(stats_dir, feature)
             self.mu = torch.tensor(np.load(os.path.join(stats_dir, 'stats/mu.npy')))
             
-            if feature == 'jtfs':
+            if self.feature == 'jtfs' and '3D' in self.feature_spec:
                 s1_channels = 4
                 self.s1_conv1 = nn.Sequential(
                     nn.Conv2d(1, s1_channels, kernel_size=(16, 1)),
@@ -74,23 +77,23 @@ class MedleySolosClassifier(LightningModule):
                     nn.AvgPool2d(kernel_size=(4, 1), padding=(2, 0))
                 )
                 self.n_channels = len(self.mu) + (s1_channels - 1)
-            elif feature == 'scat1d' or feature == 'jtfs1d':
+            elif self.feature == 'scat1d' or (self.feature == 'jtfs' and '2D' in self.feature_spec):
                 self.n_channels = len(self.mu)
 
             self.c = c 
             if self.learn_adalog:
-                self.eps = nn.Parameter(torch.randn(len(self.mu)))
+                self.register_parameter('eps', nn.Parameter(torch.randn(len(self.mu))))
         elif feature == 'cqt':
-            self.n_channels = 32
+            self.n_channels = 1
             self.cqt = CQT(sr=44100, n_bins=96, hop_length=256, fmin=32.7)
             self.a_to_db = AmplitudeToDB(stype = 'magnitude')
         
-        self.bn = nn.BatchNorm2d(self.n_channels) if 'jtfs' in self.feature else nn.BatchNorm1d(self.n_channels)
+        self.bn = nn.BatchNorm2d(self.n_channels) if self.is_2d_conv else nn.BatchNorm1d(self.n_channels)
 
         self.setup_cnn(len(classes))                                                 
          
     def setup_cnn(self, num_classes):
-        if self.feature == 'jtfs':
+        if self.is_2d_conv:
             # self.conv_net = LeNet(num_classes, self.n_channels)
             self.conv_net = models.efficientnet_b0()
             # modify input channels 
@@ -124,7 +127,7 @@ class MedleySolosClassifier(LightningModule):
         return torch.tensor(weight)
         
     def forward(self, x):
-        if self.feature == 'jtfs':
+        if self.feature == 'jtfs' and self.is_2d_conv:
             Sx = x
             s1, s2 = Sx[0].squeeze(1), Sx[1].squeeze(1)
 
@@ -135,28 +138,25 @@ class MedleySolosClassifier(LightningModule):
             else:
                 c1, c2 = c[None, :1, None], c[None, 1:, None, None]
 
-            s1 = s1 / (c1 * self.mu[None, :1, None].type_as(s1) + 1e-8)
-            s2 = s2 / (c2 * self.mu[None, 1:, None, None].type_as(s1) + 1e-8)
+            s1 = s1 / (c1 * self.mu[None, :1, None].type_as(s1))
+            s2 = s2 / (c2 * self.mu[None, 1:, None, None].type_as(s2))
 
             # s1 learnable frequential filter
             s1_conv = self.s1_conv1(s1.unsqueeze(1))
-            s1_conv = F.pad(s1_conv, 
-                    (0, 0, s2.shape[-2] - s1_conv.shape[-2], 0))
-            # import pdb; pdb.set_trace() 
-            sx = torch.cat([s1_conv, s2], dim=1)[:, :, :32, :]
+            s1_conv = F.pad(s1_conv, (0, 0, s2.shape[-2] - s1_conv.shape[-2], 0))
+            sx = torch.cat([s1_conv, s2], dim=1)
             # log1p and batch norm
             sx = torch.log1p(sx)
             sx = self.bn(sx)
-        elif self.feature == 'scat1d' or self.feature == 'jtfs1d':
+        elif self.feature == 'scat1d' or (self.feature == 'jtfs' and not self.is_2d_conv):
             Sx = x
             c = self.get_c().type_as(Sx)
             sx = torch.log1p(Sx / (c[None, :, None] * self.mu[None, :, None].type_as(Sx) + 1e-8))
             sx = self.bn(sx)
         elif self.feature == 'cqt':
-            # cqt = load_cqt(x.cpu().numpy())
             X = self.a_to_db(self.cqt(x))
             sx = F.avg_pool2d(torch.tensor(X).type_as(x), kernel_size=(3, 8))
-            # sx = sx.unsqueeze(1)
+            sx = sx.unsqueeze(1)
             sx = self.bn(sx)
 
         # conv net
@@ -175,8 +175,8 @@ class MedleySolosClassifier(LightningModule):
         self.log(f'{fold}/loss', loss, on_step=True, on_epoch=True, prog_bar=True)
         self.log(f'{fold}/acc', acc, on_step=True, on_epoch=True, prog_bar=True)
         if fold == 'test':
-            macro_avg = self.acc_metric_macro(logits, y)
-            self.log(f'{fold}/avg_macro', macro_avg, on_step=False, on_epoch=True, prog_bar=True)
+            # macro_avg = self.acc_metric_macro(logits, y)
+            # self.log(f'{fold}/avg_macro', macro_avg, on_step=False, on_epoch=True, prog_bar=True)
             self.log(f'{fold}/classwise', class_acc, on_step=True, on_epoch=True, prog_bar=True)
         
         return {f'loss': loss, f'{fold}/acc': acc, f'{fold}/classwise': class_acc}
@@ -198,14 +198,20 @@ class MedleySolosClassifier(LightningModule):
     
     def configure_optimizers(self):
         opt = torch.optim.Adam(self.parameters(), lr=self.lr)
-        scheduler = torch.optim.lr_scheduler.CyclicLR(opt, 
-                                                      base_lr=self.lr, 
-                                                      max_lr=self.lr * 4, 
-                                                      step_size_up=1024, 
-                                                      mode='triangular', 
-                                                      gamma=1.0, 
-                                                      cycle_momentum=False)
-        return {'optimizer': opt, 'lr_scheduler': scheduler}
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, 
+                                                               factor=0.5, 
+                                                               patience=4, 
+                                                               mode='min')
+        # scheduler = torch.optim.lr_scheduler.CyclicLR(opt, 
+        #                                               base_lr=self.lr, 
+        #                                               max_lr=self.lr * 4, 
+        #                                               step_size_up=1024, 
+        #                                               mode='triangular', 
+        #                                               gamma=1.0, 
+        #                                               cycle_momentum=False)
+        # return {'optimizer': opt, 'lr_scheduler': scheduler}
+        # return {'optimizer': opt}
+        return {'optimizer': opt, 'lr_scheduler': scheduler, 'monitor':  'val/loss'}
 
     def get_c(self):
         c = (self.c * torch.exp(torch.tanh(self.eps))) if self.learn_adalog else torch.tensor([self.c])
@@ -226,18 +232,19 @@ class MedleySolosDB(Dataset):
     def __init__(self, 
                  data_dir='/import/c4dm-datasets/medley-solos-db/', 
                  subset='training',
-                 feature='jtfs',
-                 feature_id=''):
+                 feature='jtfs'):
         super().__init__()
         
         self.msdb = msdb.Dataset(data_dir)
         self.audio_dir = os.path.join(data_dir, 'audio')
         self.csv_dir = os.path.join(data_dir, 'annotation')
         self.subset = subset
-        self.feature = feature
 
-        if 'jtfs' in feature or feature == 'scat1d':
-            feature_dir = os.path.join(data_dir, feature + feature_id)
+        self.feature = feature.split('_')[0]
+        self.feature_spec = feature.split('_')[1:]
+
+        if 'jtfs' in feature or 'scat1d' in feature:
+            feature_dir = os.path.join(data_dir, feature)
             self.feature_dir = os.path.join(feature_dir, subset)
         elif feature == 'cqt':
             self.feature_dir = None
@@ -250,7 +257,7 @@ class MedleySolosDB(Dataset):
         uuid = df_item['uuid4']
         instr_id = df_item['instrument_id']
         subset = df_item['subset']
-        if self.feature == 'jtfs':
+        if self.feature == 'jtfs' and '3D' in self.feature_spec:
             s1 = f'Medley-solos-DB_{subset}-{instr_id}_{uuid}_S1{ext}'
             s2 = f'Medley-solos-DB_{subset}-{instr_id}_{uuid}_S2{ext}'
             return s1, s2
@@ -262,13 +269,13 @@ class MedleySolosDB(Dataset):
 
         y = int(item['instrument_id'])
 
-        if self.feature == 'jtfs':
+        if self.feature == 'jtfs' and '3D' in self.feature_spec:
             s1_fname, s2_fname = self.build_fname(item, '.npy') 
             s1 = np.load(os.path.join(self.feature_dir, s1_fname))
             s2 = np.load(os.path.join(self.feature_dir, s2_fname))
             Sx = (s1, s2)
             return Sx, y
-        elif self.feature == 'scat1d' or self.feature == 'jtfs1d':
+        elif self.feature == 'scat1d' or (self.feature == 'jtfs' and '2D' in self.feature_spec):
             fname = self.build_fname(item, '.npy') 
             Sx = np.load(os.path.join(self.feature_dir, fname))
             return Sx, y
