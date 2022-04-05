@@ -66,6 +66,8 @@ class CQTExtractor(Extractor):
         self.cqt = CQT(**cqt_kwargs).cuda()
         self.a_to_db = AmplitudeToDB(stype = 'magnitude').cuda()
 
+        self.samples = []
+
     
     def run(self):
 
@@ -82,6 +84,18 @@ class CQTExtractor(Extractor):
                 Sx = self.a_to_db(self.cqt(audio))[0]
                 out_path = os.path.join(subset_dir, os.path.splitext(fname)[0])
                 np.save(out_path, Sx.cpu().numpy())
+
+                self.samples.append(Sx.mean(dim=-1))
+
+    def stats(self):
+        print(f'Computing Mean Stat ...')
+        samples = torch.stack(self.samples)
+        self.mu = samples.mean(dim=0)
+        self.std = samples.std(dim=0)
+        stats_path = os.path.join(self.output_dir, 'stats')
+        make_directory(stats_path)
+        np.save(os.path.join(stats_path, 'mu'), self.mu.cpu().numpy())
+        np.save(os.path.join(stats_path, 'std'), self.std.cpu().numpy())
 
 
 class JTFSExtractor(Extractor):
