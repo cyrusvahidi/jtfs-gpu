@@ -28,7 +28,7 @@ def set(args):
   experiment.addPlan('cqt',
                      feature = ['cqt'])
   experiment.addPlan('scattering',
-                     feature = ['scat1d', 'jtfs'],
+                     feature = ['jtfs_3D_J12', 'scat1d'],
                      c = np.array([1e-1, 1e-2, 1e-3]),
                      learn_adalog = [0, 1])
   experiment.setMetrics(
@@ -90,6 +90,7 @@ def preprocess_gin_file(setting,
     for line in config:
       f_temp.write(line + '\n')
 
-  gin_config_path = os.path.join(os.getcwd(), f'gin/doce/{setting.feature}.gin')
+  feature = setting.feature.split('_')[0]
+  gin_config_path = os.path.join(os.getcwd(), f'gin/doce/{feature}.gin')
   # gin.parse_config_file(gin_config_path)
   return gin_config_path

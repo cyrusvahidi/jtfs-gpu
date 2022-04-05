@@ -15,4 +15,4 @@ MedleySolosClassifier.average = 'weighted'
 MedleyDataModule.feature = 'scat1d'
 MedleySolosClassifier.feature = 'scat1d'
 MedleySolosClassifier.c = 0.1
-MedleySolosClassifier.learn_adalog = 0
+MedleySolosClassifier.learn_adalog = 1
