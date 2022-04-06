@@ -36,7 +36,7 @@ def set(args):
     acc_instruments = ['mean*%', 'std%'],
   )
 
-  experiment.nb_runs = 3
+  experiment.nb_runs = 10
   experiment.n_classes = 8
   experiment._display.metricPrecision = 4
 
@@ -47,8 +47,11 @@ def set(args):
 def step(setting, experiment):
   # if os.path.exists(experiment.path.output+setting.id()+'_acc.npy'):
     # return
-  setting_acc = np.zeros((experiment.nb_runs, ))
+  # setting_acc = np.zeros((experiment.nb_runs, ))
+  setting_acc_macro = np.zeros((experiment.nb_runs, ))
   setting_acc_instruments = np.zeros((experiment.nb_runs, experiment.n_classes))
+  setting_val_acc = np.zeros((experiment.nb_runs, ))
+  setting_val_loss = np.zeros((experiment.nb_runs, ))
 
   tic = time.time()
   print(setting.id())
@@ -57,11 +60,20 @@ def step(setting, experiment):
 
   for i in range(experiment.nb_runs):
     results = run_train(gin_config_file=gin_config_path)
-    setting_acc[i] = results['acc']
-    setting_acc_instruments[i] = np.array(results['acc_instruments'])
+    # setting_acc[i] = results['acc']
+    setting_acc_macro[i] = results['acc_macro']
+    setting_acc_instruments[i] = np.array(results['acc_classwise'])
 
-  np.save(experiment.path.output+setting.id()+'_acc.npy', setting_acc)
+    setting_val_acc[i] = results['val_acc']
+    setting_val_loss[i] = results['val_loss']
+
+  # np.save(experiment.path.output+setting.id()+'_acc.npy', setting_acc)
   np.save(experiment.path.output+setting.id()+'_acc_instruments.npy', setting_acc_instruments)
+  
+  np.save(experiment.path.output+setting.id()+'_acc_macro.npy', setting_acc_macro)
+  np.save(experiment.path.output+setting.id()+'_val_acc.npy', setting_val_acc)
+  np.save(experiment.path.output+setting.id()+'_val_loss.npy', setting_val_loss)
+
   duration = time.time()-tic
   np.save(experiment.path.output+setting.id()+'_duration.npy', duration)
 
