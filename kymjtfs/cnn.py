@@ -29,14 +29,6 @@ class MedleySolosClassifier(LightningModule):
                  lr=1e-3,
                  average='weighted', 
                  stats_dir='/import/c4dm-datasets/medley-solos-db/',
-                 classes=['clarinet', 
-                          'distorted electric guitar',
-                          'female singer',
-                          'flute',
-                          'piano',
-                          'tenor saxophone',
-                          'trumpet',
-                          'violin'],
                  csv='/import/c4dm-datasets/medley-solos-db/annotation/Medley-solos-DB_metadata.csv',
                  feature='jtfs',
                  learn_adalog = True):
@@ -47,12 +39,20 @@ class MedleySolosClassifier(LightningModule):
         self.feature = feature.split('_')[0]
         self.feature_spec = feature.split('_')[1:]
         self.learn_adalog = learn_adalog
+        # classwise accuracy 
+        df = pd.read_csv(csv)
+        classes = df[['instrument', 'instrument_id']].value_counts().index.to_list()
+        classes = [x[0] for x in sorted(classes, key=lambda x: x[1])]
 
         self.acc_metric = Accuracy(num_classes=len(classes), average=average)
         self.acc_metric_macro = Accuracy(num_classes=len(classes), average='macro')
+
         self.classwise_acc = ClasswiseWrapper(Accuracy(num_classes=len(classes), average=None), 
                                                        labels=classes)
         self.loss = nn.CrossEntropyLoss(weight=self.get_class_weight(csv))
+
+        self.val_acc = None
+        self.val_loss = None 
         
         self.is_2d_conv = self.feature == 'cqt' or (self.feature == 'jtfs' and '3D' in self.feature_spec)
 
@@ -76,6 +76,9 @@ class MedleySolosClassifier(LightningModule):
                 self.register_parameter('eps', nn.Parameter(torch.randn(len(self.mu))))
         elif feature == 'cqt':
             self.n_channels = 1
+            stats_dir = os.path.join(stats_dir, feature)
+            self.mu = torch.tensor(np.load(os.path.join(stats_dir, 'stats/mu.npy')))
+            self.std = torch.tensor(np.load(os.path.join(stats_dir, 'stats/std.npy')))
             # self.cqt = CQT(sr=44100, n_bins=96, hop_length=256, fmin=32.7)
             # self.a_to_db = AmplitudeToDB(stype = 'magnitude')
         
@@ -95,7 +98,6 @@ class MedleySolosClassifier(LightningModule):
             self.conv_net.classifier[1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)    
         else:
             # 1d convnet
-            # self.conv_net = LeNet1D(num_classes, self.n_channels)
             self.conv_net = EfficientNet1d(self.n_channels, num_classes)
 
     def setup_jtfs(self):
@@ -146,6 +148,9 @@ class MedleySolosClassifier(LightningModule):
             sx = self.bn(sx)
         elif self.feature == 'cqt':
             # X = self.a_to_db(self.cqt(x))
+            mu = self.mu[None, :, None].type_as(x)
+            std = self.std[None, :, None].type_as(x)
+            x = (x - mu) / std
             sx = F.avg_pool2d(x, kernel_size=(3, 8))
             sx = sx.unsqueeze(1)
             sx = self.bn(sx)
@@ -159,24 +164,11 @@ class MedleySolosClassifier(LightningModule):
         Sx, y = batch
         logits = self(Sx)
 
-        loss, acc = self.loss(logits, y), self.acc_metric(logits, y)
-        class_acc = self.classwise_acc(logits, y)
-        class_acc = {k: float(v.detach()) for k, v in class_acc.items()}
+        loss = self.loss(logits, y)
         
-        self.log(f'{fold}/loss', loss, on_step=True, on_epoch=True, prog_bar=True)
-        self.log(f'{fold}/acc', acc, on_step=True, on_epoch=True, prog_bar=True)
-        if fold == 'test':
-            # macro_avg = self.acc_metric_macro(logits, y)
-            # self.log(f'{fold}/avg_macro', macro_avg, on_step=False, on_epoch=True, prog_bar=True)
-            self.log(f'{fold}/classwise', class_acc, on_step=True, on_epoch=True, prog_bar=True)
-        
-        return {f'loss': loss, f'{fold}/acc': acc, f'{fold}/classwise': class_acc}
-    
-    def log_metrics(self, outputs, fold):
-        keys = list(outputs[0].keys())
-        for k in keys:
-            metric = torch.stack([x[k] for x in outputs]).mean()
-            self.log(f'{fold}/{k}', metric)
+        return {'loss': loss, 
+                'logits': logits, 
+                'y': y}
         
     def training_step(self, batch, batch_idx):
         return self.step(batch, fold='train')
@@ -186,6 +178,43 @@ class MedleySolosClassifier(LightningModule):
 
     def test_step(self, batch, batch_idx):
         return self.step(batch, fold='test')
+
+    def training_epoch_end(self, outputs):
+        logits = torch.cat([x['logits'] for x in outputs]).softmax(dim=-1)
+        y = torch.cat([x['y'] for x in outputs])
+        acc_macro = self.acc_metric_macro(logits, y)
+        acc_classwise = self.classwise_acc(logits, y) 
+        loss = torch.stack([x['loss'] for x in outputs]).mean()
+
+        self.log('train/acc', acc_macro)
+        self.log('train/loss', loss)
+
+        self.reset_metrics()
+
+    def validation_epoch_end(self, outputs):
+        logits = torch.cat([x['logits'] for x in outputs]).softmax(dim=-1)
+        y = torch.cat([x['y'] for x in outputs])
+        acc_macro = self.acc_metric_macro(logits, y)
+        acc_classwise = self.classwise_acc(logits, y) 
+
+        self.val_acc = acc_macro 
+        self.val_loss = torch.stack([x['loss'] for x in outputs]).mean()
+
+        self.log('val/acc', self.val_acc)
+        self.log('val/loss', self.val_loss)
+        
+        self.reset_metrics()
+
+    def test_epoch_end(self, outputs):
+        logits = torch.cat([x['logits'] for x in outputs]).softmax(dim=-1)
+        y = torch.cat([x['y'] for x in outputs])
+        acc_macro = self.acc_metric_macro(logits, y)
+        acc_classwise = self.classwise_acc(logits, y)
+
+        self.log(f'val_acc', self.val_acc)
+        self.log(f'val_loss', self.val_loss)
+        self.log('acc_macro', acc_macro)
+        self.log('acc_classwise', acc_classwise)
     
     def configure_optimizers(self):
         opt = torch.optim.Adam(self.parameters(), lr=self.lr)
@@ -203,6 +232,10 @@ class MedleySolosClassifier(LightningModule):
         # return {'optimizer': opt, 'lr_scheduler': scheduler}
         # return {'optimizer': opt}
         return {'optimizer': opt, 'lr_scheduler': scheduler, 'monitor':  'val/loss'}
+
+    def reset_metrics(self):
+        self.acc_metric_macro.reset()
+        self.classwise_acc.reset()
 
     def get_c(self):
         c = (self.c * torch.exp(torch.tanh(self.eps))) if self.learn_adalog else torch.tensor([self.c])

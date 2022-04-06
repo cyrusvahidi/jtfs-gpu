@@ -34,7 +34,10 @@ def run_train(n_epochs = 20,
     dataset = MedleyDataModule(batch_size=batch_size) 
     trainer.fit(model, dataset)
     x = trainer.test(model, dataset)
-    results = {'acc': x[0]['test/acc'], 'acc_instruments': [float(i) for i in x[0]['test/classwise'].values()]}
+    results = {'acc_macro': x[0]['acc_macro'],
+               'acc_classwise': [float(i) for i in x[0]['acc_classwise'].values()],
+               'val_acc': x[0]['val_acc'], 
+               'val_loss': x[0]['val_loss']}
     return results
 
 
