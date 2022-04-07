@@ -31,7 +31,8 @@ class MedleySolosClassifier(LightningModule):
                  stats_dir='/import/c4dm-datasets/medley-solos-db/',
                  csv='/import/c4dm-datasets/medley-solos-db/annotation/Medley-solos-DB_metadata.csv',
                  feature='jtfs',
-                 learn_adalog = True):
+                 learn_adalog = True,
+                 std = False):
         super().__init__()
 
         self.jtfs_kwargs = jtfs_kwargs
@@ -39,6 +40,7 @@ class MedleySolosClassifier(LightningModule):
         self.feature = feature.split('_')[0]
         self.feature_spec = feature.split('_')[1:]
         self.learn_adalog = learn_adalog
+        self.std = std
         # classwise accuracy 
         df = pd.read_csv(csv)
         classes = df[['instrument', 'instrument_id']].value_counts().index.to_list()
@@ -58,7 +60,22 @@ class MedleySolosClassifier(LightningModule):
 
         if self.feature == 'jtfs' or self.feature == 'scat1d':
             stats_dir = os.path.join(stats_dir, feature)
-            self.mu = torch.tensor(np.load(os.path.join(stats_dir, 'stats/mu.npy')))
+            
+            if self.feature == 'jtfs':
+                self.mu = torch.tensor(np.load(os.path.join(stats_dir, 'stats/mu.npy')))
+                # renormalization
+                self.mu_s1 = torch.tensor(np.load(os.path.join(stats_dir, 'stats/mu_s1.npy')))
+                self.mu_s2 = torch.tensor(np.load(os.path.join(stats_dir, 'stats/mu_s2.npy')))
+                
+                # standardization
+                self.mu_z_s1 = torch.tensor(np.load(os.path.join(stats_dir, 'stats/mu_z_s1.npy')))
+                self.mu_z_s2 = torch.tensor(np.load(os.path.join(stats_dir, 'stats/mu_z_s2.npy')))
+                self.std_z_s1 = torch.tensor(np.load(os.path.join(stats_dir, 'stats/std_z_s1.npy')))
+                self.std_z_s2 = torch.tensor(np.load(os.path.join(stats_dir, 'stats/std_z_s2.npy')))
+            else:
+                self.mu = torch.tensor(np.load(os.path.join(stats_dir, 'stats/mu.npy')))
+                self.mu_z = torch.tensor(np.load(os.path.join(stats_dir, 'stats/mu_z.npy')))
+                self.std_z = torch.tensor(np.load(os.path.join(stats_dir, 'stats/std_z.npy')))
             
             if self.feature == 'jtfs' and '3D' in self.feature_spec:
                 s1_channels = 4
@@ -67,13 +84,19 @@ class MedleySolosClassifier(LightningModule):
                     nn.ReLU(),
                     nn.AvgPool2d(kernel_size=(4, 1), padding=(2, 0))
                 )
-                self.n_channels = len(self.mu) + (s1_channels - 1)
+                if self.std:
+                    self.n_channels = len(self.mu_s2) + s1_channels
+                else:
+                    self.n_channels = len(self.mu) + (s1_channels - 1)
             elif self.feature == 'scat1d' or (self.feature == 'jtfs' and '2D' in self.feature_spec):
                 self.n_channels = len(self.mu)
 
             self.c = c 
             if self.learn_adalog:
-                self.register_parameter('eps', nn.Parameter(torch.randn(len(self.mu))))
+                if self.std and self.feature == 'jtfs':
+                    self.register_parameter('eps', nn.Parameter(torch.randn(len(self.mu_s1) + len(self.mu_s2))))
+                else:
+                    self.register_parameter('eps', nn.Parameter(torch.randn(len(self.mu))))
         elif feature == 'cqt':
             self.n_channels = 1
             stats_dir = os.path.join(stats_dir, feature)
@@ -88,7 +111,6 @@ class MedleySolosClassifier(LightningModule):
          
     def setup_cnn(self, num_classes):
         if self.is_2d_conv:
-            # self.conv_net = LeNet(num_classes, self.n_channels)
             self.conv_net = models.efficientnet_b0()
             # modify input channels 
             self.conv_net.features[0][0] = nn.Conv2d(self.n_channels, 
@@ -129,22 +151,38 @@ class MedleySolosClassifier(LightningModule):
             if c.shape[0] == 1:
                 c1, c2 = c, c
             else:
-                c1, c2 = c[None, :1, None], c[None, 1:, None, None]
+                if self.std:
+                    c1, c2 = c[None, :len(self.mu_s1), None], c[None, len(self.mu_s1):, None, None]
+                else:
+                    c1, c2 = c[None, :1, None], c[None, 1:, None, None]
+            
+            if self.std:
+                s1 = s1[:, 1:, :] / (c1 * self.mu_s1[None, :, None].type_as(s1) + 1e-8)
+                s1 = torch.log1p(s1)
+                s1 = (s1 - self.mu_z_s1[None, :, None].type_as(s1)) / self.std_z_s1[None, :, None].type_as(s1)
 
-            s1 = s1 / (c1 * self.mu[None, :1, None].type_as(s1))
-            s2 = s2 / (c2 * self.mu[None, 1:, None, None].type_as(s2))
-
+                s2 = s2 / (c2 * self.mu_s2[None, :, None, None].type_as(s2) + 1e-8)
+                s2 = torch.log1p(s2)
+                s2 = (s2 - self.mu_z_s2[None, :, None, None].type_as(s2)) / self.std_z_s2[None, :, None, None].type_as(s2)
+            else: 
+                s1 = s1 / (c1 * self.mu[None, :, None].type_as(s1) + 1e-8)
+                s2 = s2 / (c2 * self.mu_s2[None, :, None, None].type_as(s2) + 1e-8)
+                s2 = torch.log1p(s2)
+                
             # s1 learnable frequential filter
             s1_conv = self.s1_conv1(s1.unsqueeze(1))
             s1_conv = F.pad(s1_conv, (0, 0, s2.shape[-2] - s1_conv.shape[-2], 0))
             sx = torch.cat([s1_conv, s2], dim=1)
             # log1p and batch norm
-            sx = torch.log1p(sx)
+            if not self.std:
+                sx = torch.log1p(sx)
             sx = self.bn(sx)
         elif self.feature == 'scat1d' or (self.feature == 'jtfs' and not self.is_2d_conv):
             Sx = x
             c = self.get_c().type_as(Sx)
             sx = torch.log1p(Sx / (c[None, :, None] * self.mu[None, :, None].type_as(Sx) + 1e-8))
+            if self.std:
+                sx = (sx - self.mu_z[None, :, None].type_as(sx)) / self.std_z[None, :, None].type_as(sx)
             sx = self.bn(sx)
         elif self.feature == 'cqt':
             # X = self.a_to_db(self.cqt(x))
@@ -183,7 +221,6 @@ class MedleySolosClassifier(LightningModule):
         logits = torch.cat([x['logits'] for x in outputs]).softmax(dim=-1)
         y = torch.cat([x['y'] for x in outputs])
         acc_macro = self.acc_metric_macro(logits, y)
-        acc_classwise = self.classwise_acc(logits, y) 
         loss = torch.stack([x['loss'] for x in outputs]).mean()
 
         self.log('train/acc', acc_macro)
@@ -195,7 +232,6 @@ class MedleySolosClassifier(LightningModule):
         logits = torch.cat([x['logits'] for x in outputs]).softmax(dim=-1)
         y = torch.cat([x['y'] for x in outputs])
         acc_macro = self.acc_metric_macro(logits, y)
-        acc_classwise = self.classwise_acc(logits, y) 
 
         self.val_acc = acc_macro 
         self.val_loss = torch.stack([x['loss'] for x in outputs]).mean()
@@ -209,7 +245,18 @@ class MedleySolosClassifier(LightningModule):
         logits = torch.cat([x['logits'] for x in outputs]).softmax(dim=-1)
         y = torch.cat([x['y'] for x in outputs])
         acc_macro = self.acc_metric_macro(logits, y)
-        acc_classwise = self.classwise_acc(logits, y)
+        # acc_classwise = self.classwise_acc(logits, y)
+        
+        bin_counts = torch.bincount(y)
+        classwise_acc = [torch.zeros(n) for n in bin_counts]
+        class_counts = [0 for _ in bin_counts]
+        preds = logits.argmax(dim=-1)
+        for i, p in enumerate(preds):
+            score = float(preds[i] == y[i])
+            classwise_acc[y[i]][class_counts[y[i]]] = score
+            class_counts[y[i]] += 1
+
+        acc_classwise = {i: float(acc.mean()) for i, acc in enumerate(classwise_acc)}
 
         self.log(f'val_acc', self.val_acc)
         self.log(f'val_loss', self.val_loss)
@@ -220,7 +267,7 @@ class MedleySolosClassifier(LightningModule):
         opt = torch.optim.Adam(self.parameters(), lr=self.lr)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, 
                                                                factor=0.5, 
-                                                               patience=4, 
+                                                               patience=5, 
                                                                mode='min')
         # scheduler = torch.optim.lr_scheduler.CyclicLR(opt, 
         #                                               base_lr=self.lr, 

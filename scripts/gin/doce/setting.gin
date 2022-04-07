@@ -12,7 +12,8 @@ MedleySolosClassifier.csv = %MSDB_CSV
 
 MedleySolosClassifier.average = 'weighted'
 
-MedleyDataModule.feature = 'cqt'
-MedleySolosClassifier.feature = 'cqt'
-MedleySolosClassifier.c = None
-MedleySolosClassifier.learn_adalog = None
+MedleyDataModule.feature = 'jtfs_3D_J12'
+MedleySolosClassifier.feature = 'jtfs_3D_J12'
+MedleySolosClassifier.c = 0.1
+MedleySolosClassifier.learn_adalog = 0
+MedleySolosClassifier.std = 1

@@ -30,7 +30,8 @@ def set(args):
   experiment.addPlan('scattering',
                      feature = ['jtfs_3D_J12', 'scat1d'],
                      c = np.array([1e-1, 1e-2, 1e-3]),
-                     learn_adalog = [0, 1])
+                     learn_adalog = [0, 1], 
+                     std = [0, 1])
   experiment.setMetrics(
     acc = ['mean*%', 'std%'],
     acc_instruments = ['mean*%', 'std%'],
@@ -91,7 +92,8 @@ def preprocess_gin_file(setting,
   config = [f'MedleyDataModule.feature = \'{setting.feature}\'',
             f'MedleySolosClassifier.feature = \'{setting.feature}\'',
             f'MedleySolosClassifier.c = {setting.c}',
-            f'MedleySolosClassifier.learn_adalog = {setting.learn_adalog}']
+            f'MedleySolosClassifier.learn_adalog = {setting.learn_adalog}',
+            f'MedleySolosClassifier.std = {setting.std}']
 
   open(gin_temp, 'w').close() # clear temp
   with open(gin_base,'r') as f_template, open(gin_temp,'a') as f_temp:
