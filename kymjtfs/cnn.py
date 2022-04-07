@@ -9,6 +9,7 @@ from torch.nn import functional as F
 from torch import nn
 from torch.utils.data import Dataset, DataLoader
 from torchaudio.transforms import AmplitudeToDB
+from torchvision.ops import StochasticDepth
 from torchmetrics import Accuracy, ClasswiseWrapper
 from pytorch_lightning.core.lightning import LightningModule
 from nnAudio.features import CQT
@@ -19,7 +20,7 @@ from kymjtfs.batch_norm import ScatteringBatchNorm
 
 @gin.configurable
 class MedleySolosClassifier(LightningModule):
-    def __init__(self, 
+    def __init__(self,
                  c = 1e-1,
                  jtfs_kwargs = {'shape': (2**16, ),
                                 'J': 12,
@@ -27,9 +28,10 @@ class MedleySolosClassifier(LightningModule):
                                 'F': 4,
                                 'T': 2**11},
                  lr=1e-3,
-                 average='weighted', 
+                 average='weighted',
                  stats_dir='/import/c4dm-datasets/medley-solos-db/',
-                 csv='/import/c4dm-datasets/medley-solos-db/annotation/Medley-solos-DB_metadata.csv',
+                 csv=('/import/c4dm-datasets/medley-solos-db/annotation/'
+                      'Medley-solos-DB_metadata.csv'),
                  feature='jtfs',
                  learn_adalog = True,
                  std = False):
@@ -41,24 +43,26 @@ class MedleySolosClassifier(LightningModule):
         self.feature_spec = feature.split('_')[1:]
         self.learn_adalog = learn_adalog
         self.std = std
-        # classwise accuracy 
+
         df = pd.read_csv(csv)
-        classes = df[['instrument', 'instrument_id']].value_counts().index.to_list()
+        classes = df[['instrument', 'instrument_id']
+                     ].value_counts().index.to_list()
         classes = [x[0] for x in sorted(classes, key=lambda x: x[1])]
 
         self.acc_metric = Accuracy(num_classes=len(classes), average=average)
         self.acc_metric_macro = Accuracy(num_classes=len(classes), average='macro')
 
-        self.classwise_acc = ClasswiseWrapper(Accuracy(num_classes=len(classes), average=None), 
-                                                       labels=classes)
+        self.classwise_acc = ClasswiseWrapper(
+            Accuracy(num_classes=len(classes), average=None), labels=classes)
         self.loss = nn.CrossEntropyLoss(weight=self.get_class_weight(csv))
 
         self.val_acc = None
-        self.val_loss = None 
-        
-        self.is_2d_conv = self.feature == 'cqt' or (self.feature == 'jtfs' and '3D' in self.feature_spec)
+        self.val_loss = None
 
-        if self.feature == 'jtfs' or self.feature == 'scat1d':
+        self.is_2d_conv = (self.feature == 'cqt' or
+                           (self.feature == 'jtfs' and '3D' in self.feature_spec))
+
+        if self.feature in ('jtfs', 'scat1d'):
             stats_dir = os.path.join(stats_dir, feature)
             
             if self.feature == 'jtfs':
@@ -88,36 +92,41 @@ class MedleySolosClassifier(LightningModule):
                     self.n_channels = len(self.mu_s2) + s1_channels
                 else:
                     self.n_channels = len(self.mu) + (s1_channels - 1)
-            elif self.feature == 'scat1d' or (self.feature == 'jtfs' and '2D' in self.feature_spec):
+            elif (self.feature == 'scat1d' or
+                  (self.feature == 'jtfs' and '2D' in self.feature_spec)):
                 self.n_channels = len(self.mu)
 
-            self.c = c 
+            self.c = c
             if self.learn_adalog:
                 if self.std and self.feature == 'jtfs':
                     self.register_parameter('eps', nn.Parameter(torch.randn(len(self.mu_s1) + len(self.mu_s2))))
                 else:
-                    self.register_parameter('eps', nn.Parameter(torch.randn(len(self.mu))))
+                    self.register_parameter('eps',
+                                            nn.Parameter(torch.randn(len(self.mu))))
         elif feature == 'cqt':
             self.n_channels = 1
             stats_dir = os.path.join(stats_dir, feature)
-            self.mu = torch.tensor(np.load(os.path.join(stats_dir, 'stats/mu.npy')))
-            self.std = torch.tensor(np.load(os.path.join(stats_dir, 'stats/std.npy')))
+            self.mu = torch.tensor(np.load(os.path.join(stats_dir,
+                                                        'stats/mu.npy')))
+            self.std = torch.tensor(np.load(os.path.join(stats_dir,
+                                                         'stats/std.npy')))
             # self.cqt = CQT(sr=44100, n_bins=96, hop_length=256, fmin=32.7)
             # self.a_to_db = AmplitudeToDB(stype = 'magnitude')
-        
-        self.bn = nn.BatchNorm2d(self.n_channels) if self.is_2d_conv else nn.BatchNorm1d(self.n_channels)
 
-        self.setup_cnn(len(classes))                                                 
-         
+        self.bn = (nn.BatchNorm2d(self.n_channels) if self.is_2d_conv else
+                   nn.BatchNorm1d(self.n_channels))
+
+        self.setup_cnn(len(classes))
+
     def setup_cnn(self, num_classes):
         if self.is_2d_conv:
             self.conv_net = models.efficientnet_b0()
-            # modify input channels 
-            self.conv_net.features[0][0] = nn.Conv2d(self.n_channels, 
-                                                    32, 
-                                                    kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), 
-                                                    bias=False)
-            self.conv_net.classifier[1] = nn.Linear(in_features=1280, out_features=num_classes, bias=True)    
+            # modify input channels
+            self.conv_net.features[0][0] = nn.Conv2d(
+                self.n_channels, 32, kernel_size=(3, 3), stride=(2, 2),
+                padding=(1, 1), bias=False)
+            self.conv_net.classifier[1] = nn.Linear(
+                in_features=1280, out_features=num_classes, bias=True)
         else:
             # 1d convnet
             self.conv_net = EfficientNet1d(self.n_channels, num_classes)
@@ -126,12 +135,12 @@ class MedleySolosClassifier(LightningModule):
         self.jtfs = TimeFrequencyScattering1D(
             **jtfs_kwargs,
             average_fr=True,
-            max_pad_factor=1, 
+            max_pad_factor=1,
             max_pad_factor_fr=1,
             out_3D=True,)
-        
+
         n_channels = self._get_jtfs_out_dim()
-        
+
         self.jtfs_dim = self._get_jtfs_out_dim()
         self.jtfs_channels = self.jtfs_dim[0]
 
@@ -140,7 +149,7 @@ class MedleySolosClassifier(LightningModule):
         supports = list(df['instrument'].value_counts(sort=False))
         weight = [max(supports) / s for s in supports]
         return torch.tensor(weight)
-        
+
     def forward(self, x):
         if self.feature == 'jtfs' and self.is_2d_conv:
             Sx = x
@@ -177,13 +186,16 @@ class MedleySolosClassifier(LightningModule):
             if not self.std:
                 sx = torch.log1p(sx)
             sx = self.bn(sx)
-        elif self.feature == 'scat1d' or (self.feature == 'jtfs' and not self.is_2d_conv):
+
+        elif (self.feature == 'scat1d' or
+              (self.feature == 'jtfs' and not self.is_2d_conv)):
             Sx = x
             c = self.get_c().type_as(Sx)
             sx = torch.log1p(Sx / (c[None, :, None] * self.mu[None, :, None].type_as(Sx) + 1e-8))
             if self.std:
                 sx = (sx - self.mu_z[None, :, None].type_as(sx)) / self.std_z[None, :, None].type_as(sx)
             sx = self.bn(sx)
+
         elif self.feature == 'cqt':
             # X = self.a_to_db(self.cqt(x))
             mu = self.mu[None, :, None].type_as(x)
@@ -195,19 +207,19 @@ class MedleySolosClassifier(LightningModule):
 
         # conv net
         y = self.conv_net(sx)
-        
+
         return y
- 
+
     def step(self, batch, fold):
         Sx, y = batch
         logits = self(Sx)
 
         loss = self.loss(logits, y)
-        
-        return {'loss': loss, 
-                'logits': logits, 
+
+        return {'loss': loss,
+                'logits': logits,
                 'y': y}
-        
+
     def training_step(self, batch, batch_idx):
         return self.step(batch, fold='train')
 
@@ -233,12 +245,12 @@ class MedleySolosClassifier(LightningModule):
         y = torch.cat([x['y'] for x in outputs])
         acc_macro = self.acc_metric_macro(logits, y)
 
-        self.val_acc = acc_macro 
+        self.val_acc = acc_macro
         self.val_loss = torch.stack([x['loss'] for x in outputs]).mean()
 
         self.log('val/acc', self.val_acc)
         self.log('val/loss', self.val_loss)
-        
+
         self.reset_metrics()
 
     def test_epoch_end(self, outputs):
@@ -262,32 +274,25 @@ class MedleySolosClassifier(LightningModule):
         self.log(f'val_loss', self.val_loss)
         self.log('acc_macro', acc_macro)
         self.log('acc_classwise', acc_classwise)
-    
+
     def configure_optimizers(self):
         opt = torch.optim.Adam(self.parameters(), lr=self.lr)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(opt, 
                                                                factor=0.5, 
                                                                patience=5, 
                                                                mode='min')
-        # scheduler = torch.optim.lr_scheduler.CyclicLR(opt, 
-        #                                               base_lr=self.lr, 
-        #                                               max_lr=self.lr * 4, 
-        #                                               step_size_up=1024, 
-        #                                               mode='triangular', 
-        #                                               gamma=1.0, 
-        #                                               cycle_momentum=False)
-        # return {'optimizer': opt, 'lr_scheduler': scheduler}
-        # return {'optimizer': opt}
-        return {'optimizer': opt, 'lr_scheduler': scheduler, 'monitor':  'val/loss'}
+        return {'optimizer': opt, 'lr_scheduler': scheduler,
+                'monitor':  'val/loss'}
 
     def reset_metrics(self):
         self.acc_metric_macro.reset()
         self.classwise_acc.reset()
 
     def get_c(self):
-        c = (self.c * torch.exp(torch.tanh(self.eps))) if self.learn_adalog else torch.tensor([self.c])
+        c = (self.c * torch.exp(torch.tanh(self.eps)) if self.learn_adalog else
+             torch.tensor([self.c]))
         return c
-    
+
     def _get_jtfs_out_dim(self):
         dummy_in = torch.randn(self.in_shape).cuda()
         sx = self.jtfs(dummy_in)
@@ -296,16 +301,16 @@ class MedleySolosClassifier(LightningModule):
         S = torch.cat([s1, sx[1]], dim=1)[:, :, :32, :]
         out_dim = S.shape[1:3]
         return out_dim
-        
+
 
 @gin.configurable
 class MedleySolosDB(Dataset):
-    def __init__(self, 
-                 data_dir='/import/c4dm-datasets/medley-solos-db/', 
+    def __init__(self,
+                 data_dir='/import/c4dm-datasets/medley-solos-db/',
                  subset='training',
                  feature='jtfs'):
         super().__init__()
-        
+
         self.msdb = msdb.Dataset(data_dir)
         self.audio_dir = os.path.join(data_dir, 'audio')
         self.csv_dir = os.path.join(data_dir, 'annotation')
@@ -321,11 +326,12 @@ class MedleySolosDB(Dataset):
         #     self.feature_dir = None
         feature_dir = os.path.join(data_dir, feature)
         self.feature_dir = os.path.join(feature_dir, subset)
-        
-        df = pd.read_csv(os.path.join(self.csv_dir, 'Medley-solos-DB_metadata.csv'))
+
+        df = pd.read_csv(os.path.join(self.csv_dir,
+                                      'Medley-solos-DB_metadata.csv'))
         self.df = df.loc[df['subset'] == subset]
         self.df.reset_index(inplace = True)
-        
+
     def build_fname(self, df_item, ext='.npy'):
         uuid = df_item['uuid4']
         instr_id = df_item['instrument_id']
@@ -343,17 +349,18 @@ class MedleySolosDB(Dataset):
         y = int(item['instrument_id'])
 
         if self.feature == 'jtfs' and '3D' in self.feature_spec:
-            s1_fname, s2_fname = self.build_fname(item, '.npy') 
+            s1_fname, s2_fname = self.build_fname(item, '.npy')
             s1 = np.load(os.path.join(self.feature_dir, s1_fname))
             s2 = np.load(os.path.join(self.feature_dir, s2_fname))
             Sx = (s1, s2)
             return Sx, y
-        elif self.feature == 'scat1d' or (self.feature == 'jtfs' and '2D' in self.feature_spec) or self.feature == 'cqt':
-            fname = self.build_fname(item, '.npy') 
+        elif (self.feature in ('scat1d', 'cqt') or
+              (self.feature == 'jtfs' and '2D' in self.feature_spec)):
+            fname = self.build_fname(item, '.npy')
             Sx = np.load(os.path.join(self.feature_dir, fname))
             return Sx, y
         else:
-            fname = self.build_fname(item, '.wav') 
+            fname = self.build_fname(item, '.wav')
             audio, _ = msdb.load_audio(os.path.join(self.audio_dir, fname))
             x = audio
             return x, y, fname
@@ -364,8 +371,8 @@ class MedleySolosDB(Dataset):
 
 @gin.configurable
 class MedleyDataModule(pl.LightningDataModule):
-    def __init__(self, 
-                 data_dir: str = '/import/c4dm-datasets/medley-solos-db/', 
+    def __init__(self,
+                 data_dir: str = '/import/c4dm-datasets/medley-solos-db/',
                  batch_size: int = 32,
                  feature='jtfs'):
         super().__init__()
@@ -374,37 +381,41 @@ class MedleyDataModule(pl.LightningDataModule):
         self.feature = feature
 
     def setup(self, stage: Optional[str] = None):
-        self.train_ds = MedleySolosDB(self.data_dir, subset='training', feature=self.feature)
-        self.val_ds = MedleySolosDB(self.data_dir, subset='validation', feature=self.feature)
-        self.test_ds = MedleySolosDB(self.data_dir, subset='test', feature=self.feature)
+        self.train_ds = MedleySolosDB(self.data_dir, subset='training',
+                                      feature=self.feature)
+        self.val_ds = MedleySolosDB(self.data_dir, subset='validation',
+                                    feature=self.feature)
+        self.test_ds = MedleySolosDB(self.data_dir, subset='test',
+                                     feature=self.feature)
 
     def train_dataloader(self):
-        return DataLoader(self.train_ds, 
-                          batch_size=self.batch_size, 
-                          shuffle=True, 
+        return DataLoader(self.train_ds,
+                          batch_size=self.batch_size,
+                          shuffle=True,
                           drop_last=True,
                           num_workers=1)
 
     def val_dataloader(self):
-        return DataLoader(self.val_ds, 
-                          batch_size=self.batch_size, 
-                          shuffle=False, 
+        return DataLoader(self.val_ds,
+                          batch_size=self.batch_size,
+                          shuffle=False,
                           drop_last=True,
                           num_workers=1)
 
     def test_dataloader(self):
-        return DataLoader(self.test_ds, 
-                          batch_size=self.batch_size, 
-                          shuffle=False, 
-                          drop_last=True, 
+        return DataLoader(self.test_ds,
+                          batch_size=self.batch_size,
+                          shuffle=False,
+                          drop_last=True,
                           num_workers=1)
 
 
 class LeNet(nn.Module):
     def __init__(self, num_classes, in_channels):
         super().__init__()
-        self.feature_extractor = nn.Sequential(            
-            nn.Conv2d(in_channels=in_channels, out_channels=512, kernel_size=5, stride=1),
+        self.feature_extractor = nn.Sequential(
+            nn.Conv2d(in_channels=in_channels, out_channels=512, kernel_size=5,
+                      stride=1),
             nn.BatchNorm2d(512),
             nn.ReLU(),
             nn.AvgPool2d(kernel_size=2),
@@ -431,8 +442,9 @@ class LeNet(nn.Module):
 class LeNet1D(nn.Module):
     def __init__(self, num_classes, in_channels):
         super().__init__()
-        self.feature_extractor = nn.Sequential(            
-            nn.Conv1d(in_channels=in_channels, out_channels=512, kernel_size=5, stride=1),
+        self.feature_extractor = nn.Sequential(
+            nn.Conv1d(in_channels=in_channels, out_channels=512, kernel_size=5,
+                      stride=1),
             nn.BatchNorm1d(512),
             nn.ReLU(),
             nn.AvgPool1d(kernel_size=2),
@@ -455,7 +467,6 @@ class LeNet1D(nn.Module):
     def forward(self, x):
         return self.classifier(self.feature_extractor(x).flatten(1))
 
-from torchvision.ops import StochasticDepth
 
 class SqueezeExciteNd(nn.Module):
     def __init__(self, num_channels, r=16):
@@ -490,18 +501,20 @@ class SqueezeExciteNd(nn.Module):
         return output_tensor
 
 class ConvNormActivation(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=0, groups=1, act=True):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1,
+                 padding=0, groups=1, act=True):
         super().__init__()
 
         self.block = nn.Sequential(
-            nn.Conv1d(in_channels, 
-                   out_channels, 
-                   kernel_size=kernel_size, 
-                   stride=stride, 
-                   padding=padding, 
+            nn.Conv1d(in_channels,
+                   out_channels,
+                   kernel_size=kernel_size,
+                   stride=stride,
+                   padding=padding,
                    groups=groups,
                    bias=False),
-            nn.BatchNorm1d(out_channels, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.BatchNorm1d(out_channels, eps=1e-05, momentum=0.1, affine=True,
+                           track_running_stats=True),
             nn.SiLU() if act else nn.Identity()
         )
 
@@ -520,13 +533,15 @@ class MBConvN(nn.Module):
     expanded = expansion_factor * n_in
     self.skip_connection = (n_in == n_out) and (stride == 1)
 
-    self.expand_pw = nn.Identity() if (expansion_factor == 1) else ConvNormActivation(n_in, expanded, kernel_size=1)
-    self.depthwise = ConvNormActivation(expanded, expanded, kernel_size=kernel_size, 
-                                        stride=stride, padding=padding, groups=expanded)
+    self.expand_pw = (nn.Identity() if (expansion_factor == 1) else
+                      ConvNormActivation(n_in, expanded, kernel_size=1))
+    self.depthwise = ConvNormActivation(expanded, expanded,
+                                        kernel_size=kernel_size, stride=stride,
+                                        padding=padding, groups=expanded)
     self.se = SqueezeExciteNd(expanded, r=r)
     self.reduce_pw = ConvNormActivation(expanded, n_out, kernel_size=1, act=False)
     self.dropsample = StochasticDepth(p, mode='row')
-  
+
   def forward(self, x):
     residual = x
 
@@ -546,8 +561,8 @@ class MBConv1(MBConvN):
     super().__init__(n_in, n_out, expansion_factor=1,
                      kernel_size=kernel_size, stride=stride,
                      r=r, p=p)
-    
- 
+
+
 class MBConv6(MBConvN):
   def __init__(self, n_in, n_out, kernel_size=3, stride=1, r=24, p=0):
     super().__init__(n_in, n_out, expansion_factor=6,
@@ -559,23 +574,23 @@ class EfficientNet1d(nn.Module):
     def __init__(self, in_channels, num_classes):
         super().__init__()
         self.features = nn.Sequential(
-            ConvNormActivation(in_channels, 32, kernel_size=3, stride=2), 
+            ConvNormActivation(in_channels, 32, kernel_size=3, stride=2),
             MBConv1(32, 16, kernel_size=3, r=4, p=0.0),
             MBConv6(16, 24, kernel_size=3, stride=2, r=24, p=0.0125),
             MBConv6(24, 24, kernel_size=3, stride=1, r=24, p=0.025),
             MBConv6(24, 40, kernel_size=5, stride=2, r=24, p=0.0375),
-            MBConv6(40, 240, kernel_size=5, stride=1, r=24, p=0.05), 
-            MBConv6(240, 80, kernel_size=3, stride=2, r=24, p=0.0625), 
-            MBConv6(80, 80, kernel_size=3, stride=1, r=24, p=0.075), 
-            MBConv6(80, 80, kernel_size=3, stride=1, r=24, p=0.0875), 
-            MBConv6(80, 112, kernel_size=5, stride=1, r=24, p=0.1), 
-            MBConv6(112, 112, kernel_size=5, stride=1, r=24, p=0.1125), 
-            MBConv6(112, 112, kernel_size=5, stride=1, r=24, p=0.125), 
-            MBConv6(112, 192, kernel_size=5, stride=2, r=24, p=0.1375), 
-            MBConv6(192, 192, kernel_size=5, stride=1, r=24, p=0.15), 
-            MBConv6(192, 192, kernel_size=5, stride=1, r=24, p=0.1625), 
-            MBConv6(192, 192, kernel_size=5, stride=1, r=24, p=0.175), 
-            MBConv6(192, 320, kernel_size=3, stride=1, r=24, p=0.1875), 
+            MBConv6(40, 240, kernel_size=5, stride=1, r=24, p=0.05),
+            MBConv6(240, 80, kernel_size=3, stride=2, r=24, p=0.0625),
+            MBConv6(80, 80, kernel_size=3, stride=1, r=24, p=0.075),
+            MBConv6(80, 80, kernel_size=3, stride=1, r=24, p=0.0875),
+            MBConv6(80, 112, kernel_size=5, stride=1, r=24, p=0.1),
+            MBConv6(112, 112, kernel_size=5, stride=1, r=24, p=0.1125),
+            MBConv6(112, 112, kernel_size=5, stride=1, r=24, p=0.125),
+            MBConv6(112, 192, kernel_size=5, stride=2, r=24, p=0.1375),
+            MBConv6(192, 192, kernel_size=5, stride=1, r=24, p=0.15),
+            MBConv6(192, 192, kernel_size=5, stride=1, r=24, p=0.1625),
+            MBConv6(192, 192, kernel_size=5, stride=1, r=24, p=0.175),
+            MBConv6(192, 320, kernel_size=3, stride=1, r=24, p=0.1875),
             ConvNormActivation(320, 1280, kernel_size=1, stride=1)
         )
         self.avg_pool = nn.AdaptiveAvgPool1d(output_size=1)
@@ -583,7 +598,7 @@ class EfficientNet1d(nn.Module):
             nn.Dropout(0.2),
             nn.Linear(1280, num_classes, bias=True)
         )
-    
+
     def forward(self, x):
         x = self.features(x)
         x = self.avg_pool(x).squeeze(-1)
