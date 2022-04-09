@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
 def set(args):
   experiment = doce.Experiment(
-    name = 'jtfs-cnn',
+    name = 'jtfs-cnn-std',
     purpose = 'Medley DB Solos Classification with Hybrid Time-Frequency Scattering Networks',
     author = 'Cyrus Vahidi',
     address = 'c.vahidi@qmul.ac.uk',
