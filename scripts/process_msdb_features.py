@@ -221,7 +221,7 @@ class Scat1DExtractor(Extractor):
 
 def process_msdb_jtfs(data_dir='/import/c4dm-datasets/medley-solos-db/',
                       feature='jtfs',
-                      out_dir_id='_test'):
+                      out_dir_id=''):
     """ Script to save Medley-Solos-DB time-frequency scattering coefficients and stats
         to disk
     Args:
