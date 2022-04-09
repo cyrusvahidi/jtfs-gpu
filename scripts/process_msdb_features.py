@@ -109,7 +109,7 @@ class JTFSExtractor(Extractor):
                     'Q': 16, 
                     'F': 4, 
                     'T': 2**11,
-                    'out_3D': False,
+                    'out_3D': True,
                     'average_fr': True,
                     'max_pad_factor': 3,
                     'max_pad_factor_fr': 3}):
@@ -119,6 +119,8 @@ class JTFSExtractor(Extractor):
         self.data_module = data_module
 
         self.jtfs = TimeFrequencyScattering1D(**jtfs_kwargs).cuda()
+
+        self.lambda2_train = []
     
     def run(self):
 
@@ -136,8 +138,10 @@ class JTFSExtractor(Extractor):
                 if self.jtfs_kwargs['out_3D']:
                     if subset == 'training':
                         # collect S1 and S2 integrated over time and lambda
-                        s1, s2 = Sx[0].mean(dim=-1).mean(dim=-1), Sx[1].mean(dim=-1).mean(dim=-1)[0, :]
-                        self.lambda_train.append(torch.concat([s1, s2]))
+                        s1, s2 = Sx[0][0], Sx[1][0]
+                        # self.lambda_train.append(torch.concat([s1, s2]))
+                        self.lambda_train.append(s1[1:])
+                        self.lambda2_train.append(s2)
                     Sx = [s.cpu().numpy() for s in Sx]
                     out_path = os.path.join(subset_dir, os.path.splitext(fname)[0])
                     np.save(out_path + '_S1', Sx[0])
@@ -150,6 +154,27 @@ class JTFSExtractor(Extractor):
                         self.lambda_train.append(s_mu)
                     out_path = os.path.join(subset_dir, os.path.splitext(fname)[0])
                     np.save(out_path, Sx.cpu().numpy())
+    
+    def stats(self):
+        print(f'Computing Mean Stat ...')
+        samples_s1 = torch.stack(self.lambda_train)
+        samples_s2 = torch.stack(self.lambda2_train)
+        self.mu_s1 = samples_s1.mean(dim=-1).mean(dim=0)
+        self.mu_s2 = samples_s2.mean(dim=-1).mean(dim=-1).mean(dim=0)
+
+        s1_renorm = torch.log1p(samples_s1 / (1e-1 * self.mu_s1[None, :, None] + 1e-8)).mean(dim=-1)
+        s2_renorm = torch.log1p(samples_s2 / (1e-1 * self.mu_s2[None, :, None, None] + 1e-8)).mean(dim=-1).mean(dim=-1)
+        mu_z_s1, std_z_s1 = s1_renorm.mean(dim=0), s1_renorm.std(dim=0)
+        mu_z_s2, std_z_s2 = s2_renorm.mean(dim=0), s2_renorm.std(dim=0)
+
+        stats_path = os.path.join(self.output_dir, 'stats')
+        make_directory(stats_path)
+        np.save(os.path.join(stats_path, 'mu_s1'), self.mu_s1.cpu().numpy())
+        np.save(os.path.join(stats_path, 'mu_s2'), self.mu_s2.cpu().numpy())
+        np.save(os.path.join(stats_path, 'mu_z_s1'), mu_z_s1.cpu().numpy())
+        np.save(os.path.join(stats_path, 'mu_z_s2'), mu_z_s2.cpu().numpy())
+        np.save(os.path.join(stats_path, 'std_z_s1'), std_z_s1.cpu().numpy())
+        np.save(os.path.join(stats_path, 'std_z_s2'), std_z_s2.cpu().numpy())
 
 
 class Scat1DExtractor(Extractor):
@@ -195,8 +220,8 @@ class Scat1DExtractor(Extractor):
 
 
 def process_msdb_jtfs(data_dir='/import/c4dm-datasets/medley-solos-db/',
-                      feature='cqt',
-                      out_dir_id=''):
+                      feature='jtfs',
+                      out_dir_id='_test'):
     """ Script to save Medley-Solos-DB time-frequency scattering coefficients and stats
         to disk
     Args:
