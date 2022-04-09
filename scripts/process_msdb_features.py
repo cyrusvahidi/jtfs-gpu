@@ -225,9 +225,9 @@ def process_msdb_jtfs(data_dir='/import/c4dm-datasets/medley-solos-db/',
     """ Script to save Medley-Solos-DB time-frequency scattering coefficients and stats
         to disk
     Args:
-        output_dir: the output directory to save the numpy array features
         data_dir: source data directory for medley-solos-db download 
         feature: ['jtfs', 'scat1d', 'cqt']
+        output_dir_id: optional identifier to append to the output dir name
     """
     output_dir = os.path.join(data_dir, feature + out_dir_id)
     make_directory(output_dir)
