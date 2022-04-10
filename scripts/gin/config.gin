@@ -1,6 +1,6 @@
 
 MSDB_DATA_DIR = '/import/c4dm-datasets/medley-solos-db/'
-MSDB_CSV = '/import/c4dm-datasets/medley-solos-db/annotation/Medley-solos-DB_metadata.csv'
+MSDB_DATA_DIR = '/import/c4dm-datasets/medley-solos-db/annotation/Medley-solos-DB_metadata.csv'
 
 FEATURE = 'jtfs_3D_J12'
 LEARN_ADALOG = False
