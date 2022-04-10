@@ -3,6 +3,7 @@ import numpy as np, torch
 from tqdm import tqdm
 
 from kymjtfs.cnn import MedleyDataModule
+from kymjtfs.utils import make_abspath, fix_path_sep
 
 from kymatio.torch import TimeFrequencyScattering1D, Scattering1D
 
@@ -26,9 +27,9 @@ def normalize_audio(audio: np.ndarray, eps: float = 1e-10):
 
 class Extractor():
     def __init__(self,
-                output_dir,
-                data_module):
-        self.output_dir = output_dir 
+                 output_dir,
+                 data_module):
+        self.output_dir = make_abspath(output_dir)
         self.data_module = data_module
 
         self.lambda_train = []
@@ -40,7 +41,7 @@ class Extractor():
         return loaders
 
     def stats(self):
-        print(f'Computing Mean Stat ...')
+        print('Computing Mean Stat ...')
         samples = torch.stack(self.lambda_train)
         self.mu = samples.mean(dim=0)
         stats_path = os.path.join(self.output_dir, 'stats')
@@ -54,12 +55,12 @@ class CQTExtractor(Extractor):
                  output_dir,
                  data_module,
                  cqt_kwargs={
-                    'sr': 44100, 
-                    'n_bins': 96, 
-                    'hop_length': 256, 
+                    'sr': 44100,
+                    'n_bins': 96,
+                    'hop_length': 256,
                     'fmin': 32.7}):
         super().__init__(output_dir, data_module)
-        self.output_dir = output_dir
+        self.output_dir = make_abspath(output_dir)
         self.data_module = data_module
         self.cqt_kwargs = cqt_kwargs
 
@@ -68,16 +69,16 @@ class CQTExtractor(Extractor):
 
         self.samples = []
 
-    
+
     def run(self):
 
         loaders = self.get_loaders()
-                
+
         for subset, loader in loaders:
             subset_dir = os.path.join(self.output_dir, subset)
             make_directory(subset_dir)
             print(f'Extracting CQT for {subset} set ...')
-            for idx, item in tqdm(enumerate(loader)): 
+            for idx, item in tqdm(enumerate(loader)):
                 audio, _, fname = item
                 audio = normalize_audio(audio)
                 audio = torch.tensor(audio).cuda()
@@ -88,7 +89,7 @@ class CQTExtractor(Extractor):
                 self.samples.append(Sx.mean(dim=-1))
 
     def stats(self):
-        print(f'Computing Mean Stat ...')
+        print('Computing Mean Stat ...')
         samples = torch.stack(self.samples)
         self.mu = samples.mean(dim=0)
         self.std = samples.std(dim=0)
@@ -104,33 +105,33 @@ class JTFSExtractor(Extractor):
                  output_dir,
                  data_module,
                  jtfs_kwargs={
-                    'shape': 2**16, 
-                    'J': 8, 
-                    'Q': 16, 
-                    'F': 4, 
+                    'shape': 2**16,
+                    'J': 8,
+                    'Q': 16,
+                    'F': 4,
                     'T': 2**11,
                     'out_3D': True,
                     'average_fr': True,
                     'max_pad_factor': 3,
                     'max_pad_factor_fr': 3}):
         super().__init__(output_dir, data_module)
-        self.output_dir = output_dir
+        self.output_dir = make_abspath(output_dir)
         self.jtfs_kwargs = jtfs_kwargs
         self.data_module = data_module
 
         self.jtfs = TimeFrequencyScattering1D(**jtfs_kwargs).cuda()
 
         self.lambda2_train = []
-    
+
     def run(self):
 
-        loaders = self.get_loaders()    
-                
+        loaders = self.get_loaders()
+
         for subset, loader in loaders:
             subset_dir = os.path.join(self.output_dir, subset)
             make_directory(subset_dir)
             print(f'Extracting JTFS for {subset} set ...')
-            for idx, item in tqdm(enumerate(loader)): 
+            for idx, item in tqdm(enumerate(loader)):
                 audio, _, fname = item
                 audio = normalize_audio(audio)
                 Sx = self.jtfs(audio)
@@ -146,7 +147,7 @@ class JTFSExtractor(Extractor):
                     out_path = os.path.join(subset_dir, os.path.splitext(fname)[0])
                     np.save(out_path + '_S1', Sx[0])
                     np.save(out_path + '_S2', Sx[1])
-                else: 
+                else:
                     Sx = Sx[0]
                     if subset == 'training':
                         # collect S1 and S2 integrated over time and lambda
@@ -154,16 +155,20 @@ class JTFSExtractor(Extractor):
                         self.lambda_train.append(s_mu)
                     out_path = os.path.join(subset_dir, os.path.splitext(fname)[0])
                     np.save(out_path, Sx.cpu().numpy())
-    
+
     def stats(self):
-        print(f'Computing Mean Stat ...')
+        print('Computing Mean Stat ...')
         samples_s1 = torch.stack(self.lambda_train)
         samples_s2 = torch.stack(self.lambda2_train)
         self.mu_s1 = samples_s1.mean(dim=-1).mean(dim=0)
         self.mu_s2 = samples_s2.mean(dim=-1).mean(dim=-1).mean(dim=0)
 
-        s1_renorm = torch.log1p(samples_s1 / (1e-1 * self.mu_s1[None, :, None] + 1e-8)).mean(dim=-1)
-        s2_renorm = torch.log1p(samples_s2 / (1e-1 * self.mu_s2[None, :, None, None] + 1e-8)).mean(dim=-1).mean(dim=-1)
+        s1_renorm = torch.log1p(samples_s1 /
+                                (1e-1 * self.mu_s1[None, :, None] + 1e-8)
+                                ).mean(dim=-1)
+        s2_renorm = torch.log1p(samples_s2 /
+                                (1e-1 * self.mu_s2[None, :, None, None] + 1e-8)
+                                ).mean(dim=-1).mean(dim=-1)
         mu_z_s1, std_z_s1 = s1_renorm.mean(dim=0), s1_renorm.std(dim=0)
         mu_z_s2, std_z_s2 = s2_renorm.mean(dim=0), s2_renorm.std(dim=0)
 
@@ -183,12 +188,12 @@ class Scat1DExtractor(Extractor):
                  output_dir,
                  data_module,
                  scat1d_kwargs={
-                    'shape': 2**16, 
-                    'J': 8, 
+                    'shape': 2**16,
+                    'J': 8,
                     'T': 2**11,
                     'Q': 16}):
         super().__init__(output_dir, data_module)
-        self.output_dir = output_dir
+        self.output_dir = make_abspath(output_dir)
         self.data_module = data_module
         self.scat1d_kwargs = scat1d_kwargs
 
@@ -197,16 +202,16 @@ class Scat1DExtractor(Extractor):
         order1 = np.where(meta['order'] == 1)
         order2 = np.where(meta['order'] == 2)
         self.idxs = np.concatenate([order1[0], order2[0]])
-    
+
     def run(self):
 
         loaders = self.get_loaders()
-                
+
         for subset, loader in loaders:
             subset_dir = os.path.join(self.output_dir, subset)
             make_directory(subset_dir)
             print(f'Extracting Scat1D for {subset} set ...')
-            for idx, item in tqdm(enumerate(loader)): 
+            for idx, item in tqdm(enumerate(loader)):
                 audio, _, fname = item
                 audio = normalize_audio(audio)
                 audio = torch.tensor(audio).cuda()
@@ -219,21 +224,22 @@ class Scat1DExtractor(Extractor):
                 np.save(out_path, Sx.cpu().numpy())
 
 
-def process_msdb_jtfs(data_dir='/import/c4dm-datasets/medley-solos-db/',
+def process_msdb_jtfs(data_dir='import/c4dm-datasets/medley-solos-db/',
                       feature='jtfs',
                       out_dir_id=''):
-    """ Script to save Medley-Solos-DB time-frequency scattering coefficients and stats
-        to disk
+    """ Script to save Medley-Solos-DB time-frequency scattering coefficients
+        and stats to disk
     Args:
-        data_dir: source data directory for medley-solos-db download 
+        data_dir: source data directory for medley-solos-db download
         feature: ['jtfs', 'scat1d', 'cqt']
         output_dir_id: optional identifier to append to the output dir name
     """
-    output_dir = os.path.join(data_dir, feature + out_dir_id)
+    output_dir = os.path.join(make_abspath(data_dir),
+                              fix_path_sep(feature + out_dir_id))
     make_directory(output_dir)
     data_module = MedleyDataModule(data_dir, batch_size=32, feature='')
     data_module.setup()
-    
+
     if feature == 'jtfs':
         extractor = JTFSExtractor(output_dir, data_module)
     elif feature == 'scat1d':
