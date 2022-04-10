@@ -124,7 +124,7 @@ class JTFSExtractor(Extractor):
     
     def run(self):
 
-        loaders = self.get_loaders()
+        loaders = self.get_loaders()    
                 
         for subset, loader in loaders:
             subset_dir = os.path.join(self.output_dir, subset)
