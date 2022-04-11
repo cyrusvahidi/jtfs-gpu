@@ -1,6 +1,7 @@
 import os, fire
 import numpy as np, torch
 from tqdm import tqdm
+from pathlib import Path
 
 from kymjtfs.cnn import MedleyDataModule
 from kymjtfs.utils import make_abspath, fix_path_sep
@@ -140,7 +141,7 @@ class JTFSExtractor(Extractor):
                     if subset == 'training':
                         # collect S1 and S2 integrated over time and lambda
                         s1, s2 = Sx[0][0], Sx[1][0]
-                        # self.lambda_train.append(torch.concat([s1, s2]))
+
                         self.lambda_train.append(s1[1:])
                         self.lambda2_train.append(s2)
                     Sx = [s.cpu().numpy() for s in Sx]
@@ -156,8 +157,39 @@ class JTFSExtractor(Extractor):
                     out_path = os.path.join(subset_dir, os.path.splitext(fname)[0])
                     np.save(out_path, Sx.cpu().numpy())
 
-    def stats(self):
+    def stats(self, version=None):
         print('Computing Mean Stat ...')
+        if version is None:
+            try:
+                (mu_z_s1, mu_z_s2, std_z_s1, std_z_s2
+                 ) = self.stats_on_gpu()
+            except:
+                try:
+                    (mu_z_s1, mu_z_s2, std_z_s1, std_z_s2
+                     ) = self.stats_on_cpu('vectorized')
+                except:
+                    (mu_z_s1, mu_z_s2, std_z_s1, std_z_s2
+                     ) = self.stats_on_cpu('loop')
+        else:
+            fn = {'gpu': self.stats_on_gpu,
+                  'vectorized': lambda: self.stats_on_cpu('vectorized'),
+                  'loop': lambda: self.stats_on_cpu('loop')}[version]
+            mu_z_s1, mu_z_s2, std_z_s1, std_z_s2 = fn()
+
+        def cpu(x):
+            return (x if isinstance(x, np.ndarray) else
+                    x.cpu().numpy())
+
+        stats_path = os.path.join(self.output_dir, 'stats')
+        make_directory(stats_path)
+        np.save(os.path.join(stats_path, 'mu_s1'), cpu(self.mu_s1))
+        np.save(os.path.join(stats_path, 'mu_s2'), cpu(self.mu_s2))
+        np.save(os.path.join(stats_path, 'mu_z_s1'), cpu(mu_z_s1))
+        np.save(os.path.join(stats_path, 'mu_z_s2'), cpu(mu_z_s2))
+        np.save(os.path.join(stats_path, 'std_z_s1'), cpu(std_z_s1))
+        np.save(os.path.join(stats_path, 'std_z_s2'), cpu(std_z_s2))
+
+    def stats_on_gpu(self):
         samples_s1 = torch.stack(self.lambda_train)
         samples_s2 = torch.stack(self.lambda2_train)
         self.mu_s1 = samples_s1.mean(dim=-1).mean(dim=0)
@@ -172,14 +204,91 @@ class JTFSExtractor(Extractor):
         mu_z_s1, std_z_s1 = s1_renorm.mean(dim=0), s1_renorm.std(dim=0)
         mu_z_s2, std_z_s2 = s2_renorm.mean(dim=0), s2_renorm.std(dim=0)
 
-        stats_path = os.path.join(self.output_dir, 'stats')
-        make_directory(stats_path)
-        np.save(os.path.join(stats_path, 'mu_s1'), self.mu_s1.cpu().numpy())
-        np.save(os.path.join(stats_path, 'mu_s2'), self.mu_s2.cpu().numpy())
-        np.save(os.path.join(stats_path, 'mu_z_s1'), mu_z_s1.cpu().numpy())
-        np.save(os.path.join(stats_path, 'mu_z_s2'), mu_z_s2.cpu().numpy())
-        np.save(os.path.join(stats_path, 'std_z_s1'), std_z_s1.cpu().numpy())
-        np.save(os.path.join(stats_path, 'std_z_s2'), std_z_s2.cpu().numpy())
+        return mu_z_s1, mu_z_s2, std_z_s1, std_z_s2
+
+    def stats_on_cpu(self, version):
+        paths = [str(p) for p in Path(self.output_dir).iterdir()
+                 if p.suffix == '.npy']
+        paths_s1 = [p for p in paths if Path(p).stem.endswith('_S1')]
+        paths_s2 = [p for p in paths if Path(p).stem.endswith('_S2')]
+        paths_s1.sort(key=lambda p: os.path.getctime(p))
+        paths_s2.sort(key=lambda p: os.path.getctime(p))
+
+        if version == 'vectorized':
+            lambda_train, lambda2_train = [], []
+        else:
+            S1_ref, S2_ref = np.load(paths_s1[0]), np.load(paths_s2[0])
+            S1_ref = S1_ref[:, 1:]  # drop S0
+            samples_s1, samples_s2 = np.zeros(S1_ref.shape), np.zeros(S2_ref.shape)
+            lambda_train_lens  = np.zeros(S1_ref.ndim)
+            lambda2_train_lens = np.zeros(S2_ref.ndim)
+
+        for p1, p2 in zip(paths_s1, paths_s2):
+            S1, S2 = np.load(p1), np.load(p2)
+            S1 = S1[:, 1:]  # drop S0
+
+            if version == 'vectorized':
+                lambda_train.append(S1)
+                lambda2_train.append(S2)
+            else:
+                lambda_train_lens  += np.array(S1.shape)
+                lambda2_train_lens += np.array(S2.shape)
+                samples_s1 += S1
+                samples_s2 += S2
+
+        if version == 'vectorized':
+            samples_s1, samples_s2 = [], []
+            samples_s1 = np.stack(lambda_train).squeeze(1)
+            samples_s2 = np.stack(lambda2_train).squeeze(1)
+            mu_s1 = samples_s1.mean(axis=-1).mean(axis=0)
+            mu_s2 = samples_s2.mean(axis=-1).mean(axis=-1).mean(axis=0)
+        else:
+            mu_s1 = samples_s1.mean(axis=-1) / lambda_train_lens[0]
+            mu_s2 = samples_s2.mean(axis=-1).mean(axis=-1) / lambda2_train_lens[0]
+            mu_s1, mu_s2 = mu_s1.squeeze(0), mu_s2.squeeze(0)
+        self.mu_s1, self.mu_s2 = mu_s1, mu_s2
+
+        mu_div_s1 = (1e-1 * mu_s1[None, :, None] + 1e-8)
+        mu_div_s2 = (1e-1 * mu_s2[None, :, None, None] + 1e-8)
+
+        if version == 'vectorized':
+            S1_renorm = np.log1p(samples_s1 / mu_div_s1).mean(axis=-1)
+            S2_renorm = np.log1p(samples_s2 / mu_div_s2).mean(axis=-1
+                                                              ).mean(axis=-1)
+            mu_z_s1, std_z_s1 = S1_renorm.mean(axis=0), S1_renorm.std(axis=0)
+            mu_z_s2, std_z_s2 = S2_renorm.mean(axis=0), S2_renorm.std(axis=0)
+        else:
+            S1_renorm = np.zeros(samples_s1.shape[:-1])
+            S2_renorm = np.zeros(samples_s2.shape[:-2])
+
+            for p1, p2 in zip(paths_s1, paths_s2):
+                S1, S2 = np.load(p1), np.load(p2)
+                S1 = S1[:, 1:]  # drop S0
+
+                S1_renorm += np.log1p(S1 / mu_div_s1).mean(axis=-1)
+                S2_renorm += np.log1p(S2 / mu_div_s2).mean(axis=-1).mean(axis=-1)
+
+            mu_z_s1 = S1_renorm / lambda_train_lens[0]
+            mu_z_s2 = S2_renorm / lambda2_train_lens[0]
+            mu_z_s1, mu_z_s2 = mu_z_s1.squeeze(), mu_z_s2.squeeze()
+
+        if version == 'loop':
+            S1_renorm = np.zeros(samples_s1.shape[:-1])
+            S2_renorm = np.zeros(samples_s2.shape[:-2])
+
+            for p1, p2 in zip(paths_s1, paths_s2):
+                S1, S2 = np.load(p1), np.load(p2)
+                S1 = S1[:, 1:]  # drop S0
+
+                S1_renorm += (np.log1p(S1 / mu_div_s1).mean(axis=-1)
+                              - mu_z_s1)**2
+                S2_renorm += (np.log1p(S2 / mu_div_s2).mean(axis=-1).mean(axis=-1)
+                              - mu_z_s2)**2
+            std_z_s1 = np.sqrt(S1_renorm / lambda_train_lens[0])
+            std_z_s2 = np.sqrt(S2_renorm / lambda2_train_lens[0])
+            std_z_s1, std_z_s2 = std_z_s1.squeeze(0), std_z_s2.squeeze(0)
+
+        return mu_z_s1, mu_z_s2, std_z_s1, std_z_s2
 
 
 class Scat1DExtractor(Extractor):
