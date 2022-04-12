@@ -1,8 +1,8 @@
 
 
-MSDB_DATA_DIR = '/import/c4dm-datasets/medley-solos-db/'
+MSDB_DATA_DIR = 'scripts/import/c4dm-datasets/medley-solos-db/'
 
-MSDB_CSV = '/import/c4dm-datasets/medley-solos-db/annotation/Medley-solos-DB_metadata.csv'
+MSDB_CSV = 'scripts/import/c4dm-datasets/medley-solos-db/annotation/Medley-solos-DB_metadata.csv'
 
 
 
