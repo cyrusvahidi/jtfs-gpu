@@ -21,9 +21,7 @@ def make_directory(dir_path):
 
 
 def normalize_audio(audio: np.ndarray, eps: float = 1e-10):
-    max_val = max(np.abs(audio).max(), eps)
-
-    return audio / max_val
+    return audio / (audio.std() + eps)
 
 
 class Extractor():
@@ -107,12 +105,14 @@ class JTFSExtractor(Extractor):
                  data_module,
                  jtfs_kwargs={
                     'shape': 2**16,
-                    'J': 8,
+                    'J': 13,
                     'Q': 16,
                     'F': 4,
                     'T': 2**11,
                     'out_3D': True,
                     'average_fr': True,
+                    'J_fr': 6,
+                    'Q_fr': 1,
                     'max_pad_factor': 3,
                     'max_pad_factor_fr': 3}):
         super().__init__(output_dir, data_module)
@@ -131,9 +131,18 @@ class JTFSExtractor(Extractor):
         for subset, loader in loaders:
             subset_dir = os.path.join(self.output_dir, subset)
             make_directory(subset_dir)
+            names = os.listdir(subset_dir)
             print(f'Extracting JTFS for {subset} set ...')
             for idx, item in tqdm(enumerate(loader)):
+                if item is None:
+                    continue
                 audio, _, fname = item
+                out_path = os.path.join(subset_dir, os.path.splitext(fname)[0])
+
+                # if os.path.basename(path0) in os.listdir(subset_dir):
+                #     print(end='.')
+                #     continue
+
                 audio = normalize_audio(audio)
                 Sx = self.jtfs(audio)
 
@@ -142,10 +151,9 @@ class JTFSExtractor(Extractor):
                         # collect S1 and S2 integrated over time and lambda
                         s1, s2 = Sx[0][0], Sx[1][0]
 
-                        self.lambda_train.append(s1[1:])
-                        self.lambda2_train.append(s2)
+                        # self.lambda_train.append(s1[1:])
+                        # self.lambda2_train.append(s2)
                     Sx = [s.cpu().numpy() for s in Sx]
-                    out_path = os.path.join(subset_dir, os.path.splitext(fname)[0])
                     np.save(out_path + '_S1', Sx[0])
                     np.save(out_path + '_S2', Sx[1])
                 else:
@@ -153,7 +161,7 @@ class JTFSExtractor(Extractor):
                     if subset == 'training':
                         # collect S1 and S2 integrated over time and lambda
                         s_mu = Sx.mean(dim=-1)
-                        self.lambda_train.append(s_mu)
+                        # self.lambda_train.append(s_mu)
                     out_path = os.path.join(subset_dir, os.path.splitext(fname)[0])
                     np.save(out_path, Sx.cpu().numpy())
 
@@ -333,35 +341,36 @@ class Scat1DExtractor(Extractor):
                 np.save(out_path, Sx.cpu().numpy())
 
 
-def process_msdb_jtfs(data_dir='import/c4dm-datasets/medley-solos-db/',
-                      feature='jtfs',
-                      out_dir_id=''):
-    """ Script to save Medley-Solos-DB time-frequency scattering coefficients
-        and stats to disk
-    Args:
-        data_dir: source data directory for medley-solos-db download
-        feature: ['jtfs', 'scat1d', 'cqt']
-        output_dir_id: optional identifier to append to the output dir name
-    """
-    output_dir = os.path.join(make_abspath(data_dir),
-                              fix_path_sep(feature + out_dir_id))
-    make_directory(output_dir)
-    data_module = MedleyDataModule(data_dir, batch_size=32, feature='')
-    data_module.setup()
+data_dir='import/c4dm-datasets/medley-solos-db/'
+feature='jtfs'
+out_dir_id=''
+# """ Script to save Medley-Solos-DB time-frequency scattering coefficients
+#     and stats to disk
+# Args:
+#     data_dir: source data directory for medley-solos-db download
+#     feature: ['jtfs', 'scat1d', 'cqt']
+#     output_dir_id: optional identifier to append to the output dir name
+# """
+output_dir = os.path.join(make_abspath(data_dir),
+                          fix_path_sep(feature + out_dir_id))
+make_directory(output_dir)
+data_module = MedleyDataModule(data_dir, batch_size=32, feature='',
+                               out_dir_to_skip=output_dir)
+data_module.setup()
 
-    if feature == 'jtfs':
-        extractor = JTFSExtractor(output_dir, data_module)
-    elif feature == 'scat1d':
-        extractor = Scat1DExtractor(output_dir, data_module)
-    elif feature == 'cqt':
-        extractor = CQTExtractor(output_dir, data_module)
-    extractor.run()
-    extractor.stats()
-
-
-def main():
-    fire.Fire(process_msdb_jtfs)
+if feature == 'jtfs':
+    extractor = JTFSExtractor(output_dir, data_module)
+elif feature == 'scat1d':
+    extractor = Scat1DExtractor(output_dir, data_module)
+elif feature == 'cqt':
+    extractor = CQTExtractor(output_dir, data_module)
+extractor.run()
+extractor.stats()
 
 
-if __name__ == "__main__":
-    main()
+# def main():
+#     fire.Fire(process_msdb_jtfs)
+
+
+# if __name__ == "__main__":
+#     main()

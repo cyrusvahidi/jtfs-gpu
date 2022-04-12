@@ -1,49 +1,60 @@
 import gin, os
 import pytorch_lightning as pl, fire
+pl.seed_everything(0)
 from pytorch_lightning import Trainer
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+from pytorch_lightning.callbacks import (
+    RichProgressBar, ModelCheckpoint, TQDMProgressBar)
+import torch, torch.nn as nn
 from pytorch_lightning.loggers import WandbLogger
 
 from kymjtfs.cnn import MedleySolosClassifier, MedleyDataModule
+from kymjtfs.utils import make_abspath
+from pprint import pprint
 
-import warnings
-warnings.filterwarnings("ignore")
+# import warnings
+# warnings.filterwarnings("ignore")
 
-def run_train(n_epochs = 20, 
-              batch_size = 32,
-              log=False,
-              epoch_size = 8192,
-              gin_config_file = 'scripts/gin/config.gin'):
-    gin.parse_config_file(os.path.join(os.getcwd(), gin_config_file))
-    
-    early_stop_callback = EarlyStopping(monitor="val/loss", 
-                                        min_delta=0.00, 
-                                        patience=5, 
-                                        verbose=True, 
-                                        mode="min")
-    wandb_logger = WandbLogger(project='kymatio-jtfs') if log else None
-    trainer = pl.Trainer(gpus=-1, 
-                        max_epochs=n_epochs,
-                        progress_bar_refresh_rate=1, 
-                        enable_checkpointing=True,
-                        # callbacks=[early_stop_callback],
-                        # fast_dev_run=True,
-                        limit_train_batches=epoch_size // batch_size,
-                        logger=wandb_logger)
-    model = MedleySolosClassifier()
-    dataset = MedleyDataModule(batch_size=batch_size) 
+n_epochs = 30
+batch_size = 32
+log = False
+epoch_size = 8192
+n_batches_train = epoch_size // batch_size
+gin_config_file = 'gin/config.gin'
+gin.parse_config_file(make_abspath(gin_config_file))
+
+progbar_callback = TQDMProgressBar(refresh_rate=50)
+wandb_logger = WandbLogger(project='kymatio-jtfs') if log else None
+
+checkpoint_kw = dict(
+    filename='jtfs_3D_J12-{step}-val_acc{val/acc:.3f}',
+    monitor='val/acc',
+    mode='max',
+    every_n_epochs=1,
+    save_top_k=-1,
+)
+checkpoint_cb = ModelCheckpoint(**checkpoint_kw)
+
+path = None
+path = r"C:\Desktop\School\Deep Learning\DL_Code\kymatio-jtfs\scripts\checkpoints\jtfs_3D_J12-step=3822-val_accval\acc=0.842.ckpt"
+trainer = pl.Trainer(gpus=-1,
+                     max_epochs=n_epochs,
+                     callbacks=[progbar_callback, checkpoint_cb],
+                     # fast_dev_run=True,
+                     limit_train_batches=n_batches_train,
+                     logger=wandb_logger)
+dataset = MedleyDataModule(batch_size=batch_size)
+
+if path is None:
+    model = MedleySolosClassifier(n_batches_train=n_batches_train)
+else:
+    model = MedleySolosClassifier.load_from_checkpoint(path)
+
+if path is None:
     trainer.fit(model, dataset)
-    x = trainer.test(model, dataset)
-    results = {'acc_macro': x[0]['acc_macro'],
-               'acc_classwise': [float(i) for i in x[0]['acc_classwise'].values()],
-               'val_acc': x[0]['val_acc'], 
-               'val_loss': x[0]['val_loss']}
-    return results
-
-
-def main():
-  fire.Fire(run_train)
-
-
-if __name__ == "__main__":
-    main()
+#%%
+x = trainer.test(model, dataset, verbose=False)
+results = {'acc_macro': x[0]['acc_macro'],
+           'acc_classwise': [float(i) for i in x[0]['acc_classwise'].values()],
+           'val_acc': x[0].get('val_acc', -1),
+           'val_loss': x[0].get('val_loss', -1)}
+pprint(results)
