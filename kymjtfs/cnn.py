@@ -69,22 +69,25 @@ class MedleySolosClassifier(LightningModule):
         if self.feature in ('jtfs', 'scat1d'):
             stats_dir = os.path.join(stats_dir, feature)
 
+            def load_as_tensor(path):
+                return torch.tensor(np.load(os.path.join(stats_dir, path)))
+
             if self.feature == 'jtfs':
                 if not self.std:
-                    self.mu = torch.tensor(np.load(os.path.join(stats_dir, 'stats/mu.npy')))
+                    self.mu = load_as_tensor('stats/mu.npy')
                 # renormalization
-                self.mu_s1 = torch.tensor(np.load(os.path.join(stats_dir, 'stats/mu_s1.npy')))
-                self.mu_s2 = torch.tensor(np.load(os.path.join(stats_dir, 'stats/mu_s2.npy')))
+                self.mu_s1 = load_as_tensor('stats/mu_s1.npy')
+                self.mu_s2 = load_as_tensor('stats/mu_s2.npy')
 
                 # standardization
-                self.mu_z_s1 = torch.tensor(np.load(os.path.join(stats_dir, 'stats/mu_z_s1.npy')))
-                self.mu_z_s2 = torch.tensor(np.load(os.path.join(stats_dir, 'stats/mu_z_s2.npy')))
-                self.std_z_s1 = torch.tensor(np.load(os.path.join(stats_dir, 'stats/std_z_s1.npy')))
-                self.std_z_s2 = torch.tensor(np.load(os.path.join(stats_dir, 'stats/std_z_s2.npy')))
+                self.mu_z_s1 = load_as_tensor('stats/mu_z_s1.npy')
+                self.mu_z_s2 = load_as_tensor('stats/mu_z_s2.npy')
+                self.std_z_s1 = load_as_tensor('stats/std_z_s1.npy')
+                self.std_z_s2 = load_as_tensor('stats/std_z_s2.npy')
             else:
-                self.mu = torch.tensor(np.load(os.path.join(stats_dir, 'stats/mu.npy')))
-                self.mu_z = torch.tensor(np.load(os.path.join(stats_dir, 'stats/mu_z.npy')))
-                self.std_z = torch.tensor(np.load(os.path.join(stats_dir, 'stats/std_z.npy')))
+                self.mu = load_as_tensor('stats/mu.npy')
+                self.mu_z = load_as_tensor('stats/mu_z.npy')
+                self.std_z = load_as_tensor('stats/std_z.npy')
 
             if self.feature == 'jtfs' and '3D' in self.feature_spec:
                 s1_channels = 4
@@ -104,7 +107,9 @@ class MedleySolosClassifier(LightningModule):
             self.c = c
             if self.learn_adalog:
                 if self.std and self.feature == 'jtfs':
-                    self.register_parameter('eps', nn.Parameter(torch.randn(len(self.mu_s1) + len(self.mu_s2))))
+                    self.register_parameter('eps',
+                                            nn.Parameter(torch.randn(
+                                                len(self.mu_s1) + len(self.mu_s2))))
                 else:
                     self.register_parameter('eps',
                                             nn.Parameter(torch.randn(len(self.mu))))
@@ -170,21 +175,27 @@ class MedleySolosClassifier(LightningModule):
                 c1, c2 = c, c
             else:
                 if self.std:
-                    c1, c2 = c[None, :len(self.mu_s1), None], c[None, len(self.mu_s1):, None, None]
+                    c1, c2 = (c[None, :len(self.mu_s1), None],
+                              c[None, len(self.mu_s1):, None, None])
                 else:
                     c1, c2 = c[None, :1, None], c[None, 1:, None, None]
 
-            if self.std:  # TODO drop S0 entirely
-                s1 = s1[:, 1:, :] / (c1 * self.mu_s1[None, :, None].type_as(s1) + 1e-8)
+            if self.std:
+                s1 = s1[:, 1:, :] / (c1 * self.mu_s1[None, :, None].type_as(s1)
+                                     + 1e-8)
                 s1 = torch.log1p(s1)
-                s1 = (s1 - self.mu_z_s1[None, :, None].type_as(s1)) / self.std_z_s1[None, :, None].type_as(s1)
+                s1 = (s1 - self.mu_z_s1[None, :, None].type_as(s1)
+                      ) / self.std_z_s1[None, :, None].type_as(s1)
 
-                s2 = s2 / (c2 * self.mu_s2[None, :, None, None].type_as(s2) + 1e-8)
+                s2 = s2 / (c2 * self.mu_s2[None, :, None, None].type_as(s2)
+                           + 1e-8)
                 s2 = torch.log1p(s2)
-                s2 = (s2 - self.mu_z_s2[None, :, None, None].type_as(s2)) / self.std_z_s2[None, :, None, None].type_as(s2)
+                s2 = (s2 - self.mu_z_s2[None, :, None, None].type_as(s2)
+                      ) / self.std_z_s2[None, :, None, None].type_as(s2)
             else:
                 s1 = s1 / (c1 * self.mu[None, :, None].type_as(s1) + 1e-8)
-                s2 = s2 / (c2 * self.mu_s2[None, :, None, None].type_as(s2) + 1e-8)
+                s2 = s2 / (c2 * self.mu_s2[None, :, None, None].type_as(s2)
+                           + 1e-8)
                 s2 = torch.log1p(s2)
 
             # s1 learnable frequential filter
@@ -200,9 +211,11 @@ class MedleySolosClassifier(LightningModule):
               (self.feature == 'jtfs' and not self.is_2d_conv)):
             Sx = x
             c = self.get_c().type_as(Sx)
-            sx = torch.log1p(Sx / (c[None, :, None] * self.mu[None, :, None].type_as(Sx) + 1e-8))
+            sx = torch.log1p(Sx / (c[None, :, None] *
+                                   self.mu[None, :, None].type_as(Sx) + 1e-8))
             if self.std:
-                sx = (sx - self.mu_z[None, :, None].type_as(sx)) / self.std_z[None, :, None].type_as(sx)
+                sx = (sx - self.mu_z[None, :, None].type_as(sx)
+                      ) / self.std_z[None, :, None].type_as(sx)
             sx = self.bn(sx)
 
         elif self.feature == 'cqt':
@@ -294,7 +307,8 @@ class MedleySolosClassifier(LightningModule):
             classwise_acc[y[i]][class_counts[y[i]]] = score
             class_counts[y[i]] += 1
 
-        acc_classwise = {i: float(acc.mean()) for i, acc in enumerate(classwise_acc)}
+        acc_classwise = {i: float(acc.mean())
+                         for i, acc in enumerate(classwise_acc)}
 
         if self.val_acc is not None:
             self.log(f'val_acc', self.val_acc)
