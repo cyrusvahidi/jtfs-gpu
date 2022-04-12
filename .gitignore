@@ -3,6 +3,7 @@
 *.zip
 *.csv
 *.npy
+*.ckpt
 
 __pycache__
 .ipynb_checkpoints
