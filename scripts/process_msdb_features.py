@@ -103,26 +103,50 @@ class JTFSExtractor(Extractor):
     def __init__(self,
                  output_dir,
                  data_module,
-                 jtfs_kwargs={
-                    'shape': 2**16,
-                    'J': 13,
-                    'Q': 16,
-                    'F': 4,
-                    'T': 2**11,
-                    'out_3D': True,
-                    'average_fr': True,
-                    'J_fr': 6,
-                    'Q_fr': 1,
-                    'max_pad_factor': 3,
-                    'max_pad_factor_fr': 3}):
+                 jtfs_kwargs=None):
         super().__init__(output_dir, data_module)
         self.output_dir = make_abspath(output_dir)
         self.jtfs_kwargs = jtfs_kwargs
         self.data_module = data_module
 
-        self.jtfs = TimeFrequencyScattering1D(**jtfs_kwargs).cuda()
-
         self.lambda2_train = []
+
+        # build jtfs #########################################
+        # included almost all args for forward-compatibility
+        default_main = {
+            'shape': 2**16,
+            'J': (13, 13),
+            'Q': (16, 1),
+            'T': 2**11,
+
+            'J_fr': 6,
+            'Q_fr': 1,
+            'F': 4,
+            'average_fr': True,
+            'out_3D': True,
+            'max_pad_factor_fr': 3,
+            'sampling_filters_fr': ('exclude', 'resample'),
+        }
+        default_extra = {
+            'average': True,
+            'pad_mode': 'reflect',
+            'normalize': 'l1-energy',
+            'oversampling': 0,
+            'max_pad_factor': 2,
+
+            'aligned': True,
+            'analytic': True,
+            'oversampling_fr': 0,
+        }
+        default = {**default_main, **default_extra}
+        if jtfs_kwargs is None:
+            jtfs_kwargs = default.copy()
+        else:
+            # fill what's unspecified
+            for k, v in default.items():
+                if k not in jtfs_kwargs:
+                    jtfs_kwargs[k] = v
+        self.jtfs = TimeFrequencyScattering1D(**jtfs_kwargs).cuda()
 
     def run(self):
 
@@ -190,12 +214,15 @@ class JTFSExtractor(Extractor):
 
         stats_path = os.path.join(self.output_dir, 'stats')
         make_directory(stats_path)
-        np.save(os.path.join(stats_path, 'mu_s1'), cpu(self.mu_s1))
-        np.save(os.path.join(stats_path, 'mu_s2'), cpu(self.mu_s2))
-        np.save(os.path.join(stats_path, 'mu_z_s1'), cpu(mu_z_s1))
-        np.save(os.path.join(stats_path, 'mu_z_s2'), cpu(mu_z_s2))
-        np.save(os.path.join(stats_path, 'std_z_s1'), cpu(std_z_s1))
-        np.save(os.path.join(stats_path, 'std_z_s2'), cpu(std_z_s2))
+        def save_as_numpy(path, arr):
+            np.save(os.path.join(stats_path, path), cpu(arr))
+
+        save_as_numpy('mu_s1', self.mu_s1)
+        save_as_numpy('mu_s2', self.mu_s2)
+        save_as_numpy('mu_z_s1', mu_z_s1)
+        save_as_numpy('mu_z_s2', mu_z_s2)
+        save_as_numpy('std_z_s1', std_z_s1)
+        save_as_numpy('std_z_s2', std_z_s2)
 
     def stats_on_gpu(self):
         samples_s1 = torch.stack(self.lambda_train)
@@ -215,7 +242,7 @@ class JTFSExtractor(Extractor):
         return mu_z_s1, mu_z_s2, std_z_s1, std_z_s2
 
     def stats_on_cpu(self, version):
-        paths = [str(p) for p in Path(self.output_dir).iterdir()
+        paths = [str(p) for p in Path(self.output_dir, 'training').iterdir()
                  if p.suffix == '.npy']
         paths_s1 = [p for p in paths if Path(p).stem.endswith('_S1')]
         paths_s2 = [p for p in paths if Path(p).stem.endswith('_S2')]
@@ -306,9 +333,10 @@ class Scat1DExtractor(Extractor):
                  data_module,
                  scat1d_kwargs={
                     'shape': 2**16,
-                    'J': 8,
+                    'J': 13,
                     'T': 2**11,
-                    'Q': 16}):
+                    'Q': 16,
+                    'max_pad_factor': 3}):
         super().__init__(output_dir, data_module)
         self.output_dir = make_abspath(output_dir)
         self.data_module = data_module
@@ -335,7 +363,7 @@ class Scat1DExtractor(Extractor):
                 Sx = self.scat1d(audio)[self.idxs]
                 if subset == 'training':
                     # collect integrated over time
-                    self.lambda_train.append(Sx.mean(dim=-1))
+                    self.lambda_train.append(Sx.mean(dim=-1).cpu().numpy())
 
                 out_path = os.path.join(subset_dir, os.path.splitext(fname)[0])
                 np.save(out_path, Sx.cpu().numpy())
@@ -364,8 +392,9 @@ elif feature == 'scat1d':
     extractor = Scat1DExtractor(output_dir, data_module)
 elif feature == 'cqt':
     extractor = CQTExtractor(output_dir, data_module)
-extractor.run()
-extractor.stats()
+
+# extractor.run()
+# extractor.stats()
 
 
 # def main():

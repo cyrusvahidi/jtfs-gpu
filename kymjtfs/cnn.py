@@ -458,12 +458,6 @@ class MedleySolosDB(Dataset):
         else:
             fname = self.build_fname(item, '.wav')
             s1_fname, s2_fname = self.build_fname2(item, '.npy')
-            # print()
-            # print(s2_fname)
-            # print()
-            # print(self.out_dir_to_skip)
-            # print()
-            # print(os.path.basename(s2_fname) in self.out_names_done)
             if (self.out_names_done is not None and
                     os.path.basename(s2_fname) in self.out_names_done):
                 print(end='.')
@@ -554,7 +548,7 @@ class LeNet(nn.Module):
 
 
 class stuff2D(nn.Module):
-    def __init__(self, in_channels, num_classes, drop_rate=.5):
+    def __init__(self, in_channels, num_classes, dense_dim=64, drop_rate=.5):
         super().__init__()
         c_ref = in_channels * 2
         ckw = dict(stride=(1, 1), bias=False, padding='same')
@@ -580,9 +574,9 @@ class stuff2D(nn.Module):
         self.relu = nn.ReLU()
         self.gap = GlobalAveragePooling(flatten=True)
 
-        self.fc = nn.Linear(in_features=C2, out_features=C2)
+        self.fc = nn.Linear(in_features=C2, out_features=dense_dim)
         self.dp = nn.Dropout(drop_rate)
-        self.fc_out = nn.Linear(in_features=C2, out_features=num_classes)
+        self.fc_out = nn.Linear(in_features=dense_dim, out_features=num_classes)
 
     def forward_features(self, x):
         x = self.conv0(x)
@@ -615,6 +609,73 @@ class stuff2D(nn.Module):
         x = self.fc_out(x)
         return x
 
+    def forward(self, x):
+        x = self.forward_features(x)
+        x = self.classifier(x)
+        return x
+
+
+class stuff1D(nn.Module):
+    def __init__(self, in_channels, num_classes, dense_dim=64, drop_rate=.5):
+        super().__init__()
+        c_ref = in_channels * 2
+        ckw = dict(stride=(1, 1), bias=False, padding='same')
+        C0, C1, C2 = c_ref//2, c_ref, 2*c_ref
+
+        self.conv0 = nn.Conv1d(in_channels=in_channels, out_channels=C0,
+                               kernel_size=7, **ckw)
+        self.bn0 = nn.BatchNorm1d(C0)
+        self.se0 = None
+        self.mp0 = nn.MaxPool1d(kernel_size=2)
+
+        self.conv1 = nn.Conv1d(in_channels=C0, out_channels=C1,
+                               kernel_size=5, **ckw)
+        self.bn1 = nn.BatchNorm1d(C1)
+        self.se1 = SqueezeExciteNd(num_channels=C1)
+        self.mp1 = nn.MaxPool1d(kernel_size=2)
+
+        self.conv2 = nn.Conv1d(in_channels=C1, out_channels=C2,
+                               kernel_size=3, **ckw)
+        self.bn2 = nn.BatchNorm1d(C2)
+        self.se2 = SqueezeExciteNd(num_channels=C2)
+
+        self.relu = nn.ReLU()
+        self.gap = GlobalAveragePooling(flatten=True)
+
+        self.fc = nn.Linear(in_features=C2, out_features=dense_dim)
+        self.dp = nn.Dropout(drop_rate)
+        self.fc_out = nn.Linear(in_features=dense_dim, out_features=num_classes)
+
+    def forward_features(self, x):
+        x = self.conv0(x)
+        x = self.bn0(x)
+        if self.se0 is not None:
+            x = self.se0(x)
+        x = self.relu(x)
+        x = self.mp0(x)
+
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.se1(x)
+        x = self.relu(x)
+        x = self.mp1(x)
+
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = self.se2(x)
+        x = self.relu(x)
+
+        x = self.gap(x)
+        return x
+
+    def classifier(self, x):
+        x = self.dp(x)
+
+        x = self.fc(x)
+        x = self.relu(x)
+
+        x = self.fc_out(x)
+        return x
 
     def forward(self, x):
         x = self.forward_features(x)
