@@ -1,6 +1,6 @@
 import gin, os
 import pytorch_lightning as pl, fire
-pl.seed_everything(0)
+pl.seed_everything(1)
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import (
     RichProgressBar, ModelCheckpoint, TQDMProgressBar)
@@ -26,7 +26,7 @@ progbar_callback = TQDMProgressBar(refresh_rate=50)
 wandb_logger = WandbLogger(project='kymatio-jtfs') if log else None
 
 checkpoint_kw = dict(
-    filename='jtfs_3D_J12-{step}-val_acc{val/acc:.3f}',
+    filename='jtfs_3D_J13-{step}-val_acc{val/acc:.3f}',
     monitor='val/acc',
     mode='max',
     every_n_epochs=1,
@@ -35,7 +35,9 @@ checkpoint_kw = dict(
 checkpoint_cb = ModelCheckpoint(**checkpoint_kw)
 
 path = None
-path = r"C:\Desktop\School\Deep Learning\DL_Code\kymatio-jtfs\scripts\checkpoints\jtfs_3D_J12-step=3822-val_accval\acc=0.842.ckpt"
+
+
+path = r"C:\Desktop\School\Deep Learning\DL_Code\kymatio-jtfs\scripts\checkpoints\jtfs_3D_J13-step=2366-val_accval\acc=0.838.ckpt"
 trainer = pl.Trainer(gpus=-1,
                      max_epochs=n_epochs,
                      callbacks=[progbar_callback, checkpoint_cb],
@@ -51,10 +53,11 @@ else:
 
 if path is None:
     trainer.fit(model, dataset)
-#%%
+
 x = trainer.test(model, dataset, verbose=False)
 results = {'acc_macro': x[0]['acc_macro'],
            'acc_classwise': [float(i) for i in x[0]['acc_classwise'].values()],
            'val_acc': x[0].get('val_acc', -1),
            'val_loss': x[0].get('val_loss', -1)}
 pprint(results)
+print(path)
