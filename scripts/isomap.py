@@ -37,7 +37,8 @@ def generate_audio(f0s, fms, gammas, duration, sr):
         for j, fm in enumerate(fms):
             for k, gamma in enumerate(gammas):
                 audio[i, j, k, :] = generate(f0, fm, gamma, sr=sr, duration=duration)
-                audio[i, j, k, :] = audio[i, j, k, :] / np.linalg.norm(audio[i, j, k, :])
+                audio[i, j, k, :] = (audio[i, j, k, :] /
+                                     np.linalg.norm(audio[i, j, k, :]))
                 cmap[0, c], cmap[1, c], cmap[2, c] = f0, fm, gamma
                 c += 1
     return audio, cmap
@@ -170,9 +171,11 @@ def plot_knn_regression(ratios, out_dir):
     for i, ratio in enumerate(ratios.values()):
         for obj in range(3):
             plt.subplot(1, 3, 1+obj)
-            plt.plot(np.random.uniform(i - 0.1, i + 0.1, N), np.log2(ratio[:, obj]), ".", markersize=1)
+            plt.plot(np.random.uniform(i - 0.1, i + 0.1, N),
+                     np.log2(ratio[:, obj]), ".", markersize=1)
 
-            plt.yticks(np.log2(np.array([float(Fraction(label)) for label in yticklabels])))
+            plt.yticks(np.log2(np.array([float(Fraction(label))
+                                         for label in yticklabels])))
             plt.xticks([i for i in range(len(ratios))])
             plt.gca().set_xticklabels(list(ratios.keys()))
             plt.gca().set_yticklabels(yticklabels)
