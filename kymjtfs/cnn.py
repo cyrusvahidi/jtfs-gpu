@@ -554,8 +554,12 @@ class stuff2D(nn.Module):
                  se_r=16):
         super().__init__()
         """
-        JTFS: se_r=16; c_ref = in_channels * 2
-        CQT:  se_r=4;  c_ref = in_channels * 128
+        JTFS:
+            se_r=16; c_ref = in_channels * 2
+            MedleySolosClassifier.std = 1
+        CQT:
+            se_r=4;  c_ref = in_channels * 128
+            MedleySolosClassifier.std = 1
         """
         c_ref = in_channels * 2
         ckw = dict(stride=(1, 1), bias=False, padding='same')
@@ -565,13 +569,14 @@ class stuff2D(nn.Module):
                                kernel_size=(7, 7), **ckw)
         self.bn0 = nn.BatchNorm2d(C0)
         self.se0 = None
-        self.mp0 = nn.MaxPool2d(kernel_size=(1, 2))
+        self.mp0 = nn.MaxPool2d(kernel_size=(2, 2))
 
         self.conv1 = nn.Conv2d(in_channels=C0, out_channels=C1,
                                kernel_size=(5, 5), **ckw)
         self.bn1 = nn.BatchNorm2d(C1)
         self.se1 = SqueezeExciteNd(num_channels=C1, r=se_r)
-        self.mp1 = nn.MaxPool2d(kernel_size=(2, 1))
+        self.mp1 = None
+        # self.mp1 = nn.MaxPool2d(kernel_size=(2, 1))
 
         self.conv2 = nn.Conv2d(in_channels=C1, out_channels=C2,
                                kernel_size=(3, 3), **ckw)
@@ -597,7 +602,8 @@ class stuff2D(nn.Module):
         x = self.bn1(x)
         x = self.se1(x)
         x = self.relu(x)
-        x = self.mp1(x)
+        if self.mp1 is not None:
+            x = self.mp1(x)
 
         x = self.conv2(x)
         x = self.bn2(x)
