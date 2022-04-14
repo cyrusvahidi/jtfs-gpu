@@ -86,8 +86,9 @@ class MedleySolosClassifier(LightningModule):
                 self.std_z_s2 = load_as_tensor('stats/std_z_s2.npy')
             else:
                 self.mu = load_as_tensor('stats/mu.npy')
-                self.mu_z = load_as_tensor('stats/mu_z.npy')
-                self.std_z = load_as_tensor('stats/std_z.npy')
+                if self.std:
+                    self.mu_z = load_as_tensor('stats/mu_z.npy')
+                    self.std_z = load_as_tensor('stats/std_z.npy')
 
             if self.feature == 'jtfs' and '3D' in self.feature_spec:
                 s1_channels = 4
@@ -143,7 +144,8 @@ class MedleySolosClassifier(LightningModule):
             #     in_features=1280, out_features=num_classes, bias=True)
         else:
             # 1d convnet
-            self.conv_net = EfficientNet1d(self.n_channels, num_classes)
+            self.conv_net = stuff1D(self.n_channels, num_classes=num_classes)
+            # self.conv_net = EfficientNet1d(self.n_channels, num_classes)
 
     def setup_jtfs(self):
         self.jtfs = TimeFrequencyScattering1D(
@@ -548,8 +550,13 @@ class LeNet(nn.Module):
 
 
 class stuff2D(nn.Module):
-    def __init__(self, in_channels, num_classes, dense_dim=64, drop_rate=.5):
+    def __init__(self, in_channels, num_classes, dense_dim=64, drop_rate=.5,
+                 se_r=16):
         super().__init__()
+        """
+        JTFS: se_r=16; c_ref = in_channels * 2
+        CQT:  se_r=4;  c_ref = in_channels * 128
+        """
         c_ref = in_channels * 2
         ckw = dict(stride=(1, 1), bias=False, padding='same')
         C0, C1, C2 = c_ref//2, c_ref, 2*c_ref
@@ -563,13 +570,13 @@ class stuff2D(nn.Module):
         self.conv1 = nn.Conv2d(in_channels=C0, out_channels=C1,
                                kernel_size=(5, 5), **ckw)
         self.bn1 = nn.BatchNorm2d(C1)
-        self.se1 = SqueezeExciteNd(num_channels=C1)
+        self.se1 = SqueezeExciteNd(num_channels=C1, r=se_r)
         self.mp1 = nn.MaxPool2d(kernel_size=(2, 1))
 
         self.conv2 = nn.Conv2d(in_channels=C1, out_channels=C2,
                                kernel_size=(3, 3), **ckw)
         self.bn2 = nn.BatchNorm2d(C2)
-        self.se2 = SqueezeExciteNd(num_channels=C2)
+        self.se2 = SqueezeExciteNd(num_channels=C2, r=se_r)
 
         self.relu = nn.ReLU()
         self.gap = GlobalAveragePooling(flatten=True)
@@ -618,8 +625,8 @@ class stuff2D(nn.Module):
 class stuff1D(nn.Module):
     def __init__(self, in_channels, num_classes, dense_dim=64, drop_rate=.5):
         super().__init__()
-        c_ref = in_channels * 2
-        ckw = dict(stride=(1, 1), bias=False, padding='same')
+        c_ref = in_channels // 4
+        ckw = dict(stride=1, bias=False, padding='same')
         C0, C1, C2 = c_ref//2, c_ref, 2*c_ref
 
         self.conv0 = nn.Conv1d(in_channels=in_channels, out_channels=C0,
