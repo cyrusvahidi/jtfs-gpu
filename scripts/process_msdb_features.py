@@ -85,7 +85,7 @@ class CQTExtractor(Extractor):
                 out_path = os.path.join(subset_dir, os.path.splitext(fname)[0])
                 np.save(out_path, Sx.cpu().numpy())
 
-                self.samples.append(Sx.mean(dim=-1))
+                self.samples.append(Sx.mean(dim=-1).cpu())
 
     def stats(self):
         print('Computing Mean Stat ...')
@@ -370,7 +370,7 @@ class Scat1DExtractor(Extractor):
 
 
 data_dir='import/c4dm-datasets/medley-solos-db/'
-feature='jtfs'
+feature='cqt'
 out_dir_id=''
 # """ Script to save Medley-Solos-DB time-frequency scattering coefficients
 #     and stats to disk
@@ -393,8 +393,8 @@ elif feature == 'scat1d':
 elif feature == 'cqt':
     extractor = CQTExtractor(output_dir, data_module)
 
-# extractor.run()
-# extractor.stats()
+extractor.run()
+extractor.stats()
 
 
 # def main():
