@@ -1,6 +1,6 @@
 import gin, os
 import pytorch_lightning as pl, fire
-pl.seed_everything(0)
+pl.seed_everything(1)
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import (
     RichProgressBar, ModelCheckpoint, TQDMProgressBar)
@@ -23,10 +23,10 @@ gin_config_file = 'gin/config.gin'
 gin.parse_config_file(make_abspath(gin_config_file))
 
 progbar_callback = TQDMProgressBar(refresh_rate=50)
-wandb_logger = WandbLogger(project='cqt-jtfs') if log else None
+wandb_logger = WandbLogger(project='scat1d') if log else None
 
 checkpoint_kw = dict(
-    filename='cqt-{step}-val_acc{val/acc:.3f}',
+    filename='scat1d-{step}-val_acc{val/acc:.3f}-val_loss{val/loss:.3f}',
     monitor='val/acc',
     mode='max',
     every_n_epochs=1,
@@ -35,8 +35,7 @@ checkpoint_kw = dict(
 checkpoint_cb = ModelCheckpoint(**checkpoint_kw)
 
 path = None
-
-path = r"C:\Desktop\School\Deep Learning\DL_Code\kymatio-jtfs\scripts\checkpoints\cqt-step=2366-val_accval\acc=0.681.ckpt"
+# path = r"C:\Desktop\School\Deep Learning\DL_Code\kymatio-jtfs\scripts\checkpoints\scat1d-step=1820-val_accval\acc=0.886-val_lossval\loss=0.322.ckpt"
 trainer = pl.Trainer(gpus=-1,
                      max_epochs=n_epochs,
                      callbacks=[progbar_callback, checkpoint_cb],
