@@ -1,7 +1,7 @@
 
 MSDB_DATA_DIR = 'import/c4dm-datasets/medley-solos-db/'
 
-FEATURE = 'jtfs_3D_J13'
+FEATURE = 'scat1d_J13'
 LEARN_ADALOG = False
 ACCURACY_AVG = 'weighted'
 
