@@ -17,9 +17,11 @@ Examples of Time-Frequency Scattering in Kymatio, for audio signals
 
 ## How to run   
 
-First, install dependencies   
+First, install dependencies
 
 ### Installation v1
+
+Pip only, no IDE
 
 ```bash
 # clone project   
