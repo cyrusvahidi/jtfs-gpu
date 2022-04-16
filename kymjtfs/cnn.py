@@ -384,7 +384,7 @@ class MedleySolosDB(Dataset):
                  data_dir='import/c4dm-datasets/medley-solos-db/',
                  subset='training',
                  feature='jtfs',
-                 out_dir_to_skip=None,
+                 out_dir_to_skip=None,  # resuming mechanism
                  ):
         super().__init__()
 
