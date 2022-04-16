@@ -3,12 +3,20 @@ import fire, tqdm
 import numpy as np, matplotlib.pyplot as plt, scipy
 import librosa, librosa.feature, librosa.display
 import torch
+import warnings
 
 from fractions import Fraction
-# import openl3
 from kymatio.torch import TimeFrequencyScattering1D, Scattering1D
-
 from sklearn.manifold import Isomap
+
+try:
+    import openl3
+    skip_openl3 = False
+except:
+    # TODO implement skipping
+    skip_openl3 = True
+    warnings.warn("Could not import `openl3`, will skip experiment")
+
 
 def sinusoid(f0, duration, sr):
     t = np.arange(0, duration, 1/sr)
@@ -36,10 +44,8 @@ def generate_audio(f0s, fms, gammas, duration, sr):
     for i, f0 in tqdm.tqdm(enumerate(f0s)):
         for j, fm in enumerate(fms):
             for k, gamma in enumerate(gammas):
-                audio[i, j, k, :] = generate(f0, fm, gamma, sr=sr,
-                                             duration=duration)
-                audio[i, j, k, :] = (audio[i, j, k, :] /
-                                     np.linalg.norm(audio[i, j, k, :]))
+                audio[i, j, k, :] = generate(f0, fm, gamma, sr=sr, duration=duration)
+                audio[i, j, k, :] = audio[i, j, k, :] / np.linalg.norm(audio[i, j, k, :])
                 cmap[0, c], cmap[1, c], cmap[2, c] = f0, fm, gamma
                 c += 1
     return audio, cmap
@@ -52,8 +58,7 @@ def extract_mfcc(audio, f0s, fms, gammas, sr, n_mfcc = 20):
     for i, f0 in tqdm.tqdm(enumerate(f0s)):
         for j, fm in enumerate(fms):
             for k, gamma in enumerate(gammas):
-                mfcc[i, j, k,:] = np.mean(librosa.feature.mfcc(y=audio[i,j,k],
-                                                               sr=sr), axis=-1)
+                mfcc[i, j, k,:] = np.mean(librosa.feature.mfcc(y=audio[i,j,k], sr=sr), axis=-1)
 
     return mfcc.reshape(-1, mfcc.shape[-1])
 
@@ -62,11 +67,11 @@ def extract_time_scattering(audio, duration, sr, **ts_kwargs):
     N = duration * sr
     scat = Scattering1D(shape=(N, ),
                         T=N,
-                        # Q=1,
-                        Q=8,
+                        Q=1,
+                        # Q=8,
                         pad_mode='zero',
-                        J=int(np.log2(N) - 1),
-                        ).cuda()
+                        max_pad_factor=3,
+                        J=int(np.log2(N) - 1)).cuda()
 
     X = torch.tensor(audio).cuda()
     n_samples = X.shape[0]
@@ -82,7 +87,7 @@ def extract_time_scattering(audio, duration, sr, **ts_kwargs):
 def extract_jtfs(audio, duration, sr, **jtfs_kwargs):
     N = duration * sr
     jtfs = TimeFrequencyScattering1D(
-        shape=(N, ),
+        shape=(N,),
         T=N,
         Q=8,
         J=int(np.log2(N) - 1),
@@ -90,8 +95,7 @@ def extract_jtfs(audio, duration, sr, **jtfs_kwargs):
         pad_mode_fr='zero',
         max_pad_factor=3,
         max_pad_factor_fr=None,
-        sampling_filters_fr='resample',
-        ).cuda()
+        sampling_filters_fr='resample').cuda()
     X = torch.tensor(audio).cuda()
     n_samples, n_paths = X.shape[0], jtfs(X[0]).shape[1]
     sx = torch.zeros(n_samples, n_paths)
@@ -162,7 +166,6 @@ def plot_isomap(Y, cmap, out_dir):
     plt.subplots_adjust(wspace=0, hspace=0)
 
     plt.savefig(os.path.join(out_dir, 'isomap.png'))
-    plt.show()
 
 
 def plot_knn_regression(ratios, out_dir):
@@ -193,105 +196,71 @@ def plot_knn_regression(ratios, out_dir):
     plt.savefig(os.path.join(out_dir, 'knn.png'))
 
 
+def run_isomaps(X, cmap, out_dir, n_neighbors=40):
 
-n_steps = 16
-f0_min = 512
-f0_max = 1024
-fm_min = 4
-fm_max = 16
-gamma_min = 0.5
-gamma_max = 4
-bw = 2
-duration = 4
-sr = 2**13
-out_dir = '/img'
+    Y = {}
+    ratios = {}
+    models = {}
+
+    for feat in X.keys():
+        feat_dir = os.path.join(out_dir, feat)
+
+        os.makedirs(feat_dir, exist_ok=True)
+        models[feat] = Isomap(n_components=3, n_neighbors=n_neighbors)
+        Y[feat] = models[feat].fit_transform(X[feat])
+
+        plot_isomap(Y[feat], cmap, feat_dir)
+
+        knn = models[feat].nbrs_.kneighbors()
+        ratios[feat] = np.vstack([
+            np.exp(np.mean(np.log(cmap[:, knn[1][i, :]]), axis=1)) / cmap[:, i]
+            for i in range(X[feat].shape[0])
+        ])
+
+    plot_knn_regression(ratios, out_dir)
 
 
-out_dir = os.getcwd() + out_dir
+def run_isomap(
+    n_steps = 16,
+    f0_min = 512,
+    f0_max = 1024,
+    fm_min = 4,
+    fm_max = 16,
+    gamma_min = 0.5,
+    gamma_max = 4,
+    bw = 2,
+    duration = 4,
+    sr = 2**13,
+    out_dir = '/img'):
 
-if not os.path.exists(out_dir):
-    os.makedirs(out_dir)
 
-f0s = np.logspace(np.log10(f0_min), np.log10(f0_max), n_steps)
-fms = np.logspace(np.log10(fm_min), np.log10(fm_max), n_steps)
-gammas = np.logspace(np.log10(gamma_min), np.log10(gamma_max), n_steps)
-#%%
-audio, cmap = generate_audio(f0s, fms, gammas, duration, sr)
-#%%
+    out_dir = os.getcwd() + out_dir
 
-# mfcc = extract_mfcc(audio, f0s, fms, gammas, sr)
-# jtfs = extract_jtfs(audio.reshape(-1, audio.shape[-1]), duration, sr)
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
 
-N = duration * sr
-jtfs = TimeFrequencyScattering1D(
-    shape=(N,),
-    T=N,
-    Q=8,
-    J=int(np.log2(N) - 1),
-    pad_mode='zero',
-    pad_mode_fr='zero',
-    max_pad_factor=3,
-    max_pad_factor_fr=None,
-    sampling_filters_fr='resample',
-    ).cuda()
-X = torch.tensor(audio.reshape(-1, audio.shape[-1])).cuda()
-n_samples, n_paths = X.shape[0], jtfs(X[0]).shape[1]
-sx = torch.zeros(n_samples, n_paths)
+    f0s = np.logspace(np.log10(f0_min), np.log10(f0_max), n_steps)
+    fms = np.logspace(np.log10(fm_min), np.log10(fm_max), n_steps)
+    gammas = np.logspace(np.log10(gamma_min), np.log10(gamma_max), n_steps)
 
-for i in tqdm.tqdm(range(n_samples)):
-    sx[i, :] = jtfs(X[i, :])[:, :, 0]
+    audio, cmap = generate_audio(f0s, fms, gammas, duration, sr)
 
-jtfs = sx.cpu().numpy()
+    # mfcc = extract_mfcc(audio, f0s, fms, gammas, sr)
+    ts = extract_time_scattering(audio.reshape(-1, audio.shape[-1]), duration, sr)
+    jtfs = extract_jtfs(audio.reshape(-1, audio.shape[-1]), duration, sr)
+    # ol3 = extract_openl3(audio.reshape(-1, audio.shape[-1]), sr)
+    # strf = extract_strf(audio.reshape(-1, audio.shape[-1]), duration, sr)
 
-#%%
-# ts = extract_time_scattering(audio.reshape(-1, audio.shape[-1]), duration, sr)
-N = duration * sr
-scat = Scattering1D(shape=(N, ),
-                    T=N,
-                    Q=1,
-                    # Q=8,
-                    pad_mode='zero',
-                    max_pad_factor=3,
-                    J=int(np.log2(N) - 1),
-                    ).cuda()
+    # X = {"MFCC": mfcc, "TS": ts, "JTFS": jtfs, "OPEN-L3": ol3, "STRF": strf}
+    # X = {"MFCC": mfcc, "TS": ts, "JTFS": jtfs}
+    X = {"TS": ts, "JTFS": jtfs}
 
-X = torch.tensor(audio.reshape(-1, audio.shape[-1])).cuda()
-n_samples = X.shape[0]
-n_paths = scat(X[0]).shape[0]
+    run_isomaps(X, cmap, out_dir)
 
-sx = torch.zeros(n_samples, n_paths)
 
-for i in tqdm.tqdm(range(n_samples)):
-    sx[i, :] = scat(X[i, :])[:, 0]
-ts = sx.cpu().numpy()
-#%%
-# ol3 = extract_openl3(audio.reshape(-1, audio.shape[-1]), sr)
-# strf = extract_strf(audio.reshape(-1, audio.shape[-1]), duration, sr)
+def main():
+  fire.Fire(run_isomap)
 
-# X = {"MFCC": mfcc, "TS": ts, "JTFS": jtfs, "OPEN-L3": ol3, "STRF": strf}
-# X = {"MFCC": mfcc, "TS": ts, "JTFS": jtfs}
-X = {"TS": ts, "JTFS": jtfs}
 
-#%% run isomaps ##############################################################
-n_neighbors = 40
-
-Y = {}
-ratios = {}
-models = {}
-
-for feat in X.keys():
-    feat_dir = os.path.join(out_dir, feat)
-
-    os.makedirs(feat_dir, exist_ok=True)
-    models[feat] = Isomap(n_components=3, n_neighbors=n_neighbors)
-    Y[feat] = models[feat].fit_transform(X[feat])
-
-    plot_isomap(Y[feat], cmap, feat_dir)
-
-    knn = models[feat].nbrs_.kneighbors()
-    ratios[feat] = np.vstack([
-        np.exp(np.mean(np.log(cmap[:, knn[1][i, :]]), axis=1)) / cmap[:, i]
-        for i in range(X[feat].shape[0])
-    ])
-
-plot_knn_regression(ratios, out_dir)
+if __name__ == "__main__":
+    main()
