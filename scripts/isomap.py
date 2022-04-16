@@ -96,6 +96,7 @@ def extract_jtfs(audio, duration, sr, **jtfs_kwargs):
         max_pad_factor=3,
         max_pad_factor_fr=None,
         sampling_filters_fr='resample').cuda()
+    
     X = torch.tensor(audio).cuda()
     n_samples, n_paths = X.shape[0], jtfs(X[0]).shape[1]
     sx = torch.zeros(n_samples, n_paths)
