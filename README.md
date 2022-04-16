@@ -47,7 +47,7 @@ conda install mamba
 conda create kymj
 conda activate kymj
 mamba env update --file conda-env-kymj.yml
-pip install --file env-kymj-pip.txt
+pip install --file pip-env-kymj.txt
 
 pip install -e git+https://github.com/mathieulagrange/doce.git@3ad246067c6a8ac829899e7e888f4debbad80629#egg=doce
 pip install git+https://github.com/PyTorchLightning/metrics.git@3af729508289d3babf0e166d9e8405cb2b0758a2
