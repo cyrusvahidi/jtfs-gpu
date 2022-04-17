@@ -130,32 +130,14 @@ class MedleySolosClassifier(LightningModule):
 
     def setup_cnn(self, num_classes):
         if self.is_2d_conv:
-            self.conv_net = stuff2D(self.n_channels, num_classes=num_classes)
-
-            # self.conv_net = models.efficientnet_b0()
-            # # modify input channels
-            # self.conv_net.features[0][0] = nn.Conv2d(
-            #     self.n_channels, 32, kernel_size=(3, 3), stride=(2, 2),
-            #     padding=(1, 1), bias=False)
-            # self.conv_net.classifier[1] = nn.Linear(
-            #     in_features=1280, out_features=num_classes, bias=True)
+            if self.feature == 'jtfs':
+                self.conv_net = stuff2D(self.n_channels, num_classes=num_classes,
+                                        se_r=16, c_mult_init=1)
+            elif self.feature == 'cqt':
+                self.conv_net = stuff2D(self.n_channels, num_classes=num_classes,
+                                        se_r=4, c_mult_init=64)
         else:
-            # 1d convnet
             self.conv_net = stuff1D(self.n_channels, num_classes=num_classes)
-            # self.conv_net = EfficientNet1d(self.n_channels, num_classes)
-
-    def setup_jtfs(self):
-        self.jtfs = TimeFrequencyScattering1D(
-            **jtfs_kwargs,
-            average_fr=True,
-            max_pad_factor=1,
-            max_pad_factor_fr=1,
-            out_3D=True,)
-
-        n_channels = self._get_jtfs_out_dim()
-
-        self.jtfs_dim = self._get_jtfs_out_dim()
-        self.jtfs_channels = self.jtfs_dim[0]
 
     def get_class_weight(self, csv):
         df = pd.read_csv(csv)
@@ -547,7 +529,7 @@ class LeNet(nn.Module):
 
 class stuff2D(nn.Module):
     def __init__(self, in_channels, num_classes, dense_dim=64, drop_rate=.5,
-                 se_r=16):
+                 se_r=16, c_mult_init=1):
         super().__init__()
         """
         JTFS:
@@ -557,9 +539,9 @@ class stuff2D(nn.Module):
             se_r=4;  c_ref = in_channels * 128
             MedleySolosClassifier.std = 1
         """
-        c_ref = in_channels * 2
         ckw = dict(stride=(1, 1), bias=False, padding='same')
-        C0, C1, C2 = c_ref//2, c_ref, 2*c_ref
+        c_ref = in_channels * c_mult_init
+        C0, C1, C2 = c_ref, 2*c_ref, 4*c_ref
 
         self.conv0 = nn.Conv2d(in_channels=in_channels, out_channels=C0,
                                kernel_size=(7, 7), **ckw)
