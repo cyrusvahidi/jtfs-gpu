@@ -21,9 +21,7 @@ def make_directory(dir_path):
 
 
 def normalize_audio(audio: np.ndarray, eps: float = 1e-10):
-    max_val = max(np.abs(audio).max(), eps)
-
-    return audio / max_val
+    return audio / (audio.std() + eps)
 
 
 class Extractor():
@@ -70,7 +68,6 @@ class CQTExtractor(Extractor):
 
         self.samples = []
 
-
     def run(self):
 
         loaders = self.get_loaders()
@@ -87,7 +84,7 @@ class CQTExtractor(Extractor):
                 out_path = os.path.join(subset_dir, os.path.splitext(fname)[0])
                 np.save(out_path, Sx.cpu().numpy())
 
-                self.samples.append(Sx.mean(dim=-1))
+                self.samples.append(Sx.mean(dim=-1).cpu())
 
     def stats(self):
         print('Computing Mean Stat ...')
@@ -105,24 +102,53 @@ class JTFSExtractor(Extractor):
     def __init__(self,
                  output_dir,
                  data_module,
-                 jtfs_kwargs={
-                    'shape': 2**16,
-                    'J': 8,
-                    'Q': 16,
-                    'F': 4,
-                    'T': 2**11,
-                    'out_3D': True,
-                    'average_fr': True,
-                    'max_pad_factor': 3,
-                    'max_pad_factor_fr': 3}):
+                 postprocess_mode='loop',
+                 jtfs_kwargs=None):
         super().__init__(output_dir, data_module)
         self.output_dir = make_abspath(output_dir)
         self.jtfs_kwargs = jtfs_kwargs
         self.data_module = data_module
-
-        self.jtfs = TimeFrequencyScattering1D(**jtfs_kwargs).cuda()
+        assert postprocess_mode in ('loop', 'cpu', 'gpu')
+        self.postprocess_mode = postprocess_mode
 
         self.lambda2_train = []
+
+        # build jtfs #########################################
+        # included almost all args for forward-compatibility
+        default_main = {
+            'shape': 2**16,
+            'J': (13, 13),
+            'Q': (16, 1),
+            'T': 2**11,
+
+            'J_fr': 6,
+            'Q_fr': 1,
+            'F': 4,
+            'average_fr': True,
+            'out_3D': True,
+            'max_pad_factor_fr': 3,
+            'sampling_filters_fr': ('exclude', 'resample'),
+        }
+        default_extra = {
+            'average': True,
+            'pad_mode': 'reflect',
+            'normalize': 'l1-energy',
+            'oversampling': 0,
+            'max_pad_factor': 2,
+
+            'aligned': True,
+            'analytic': True,
+            'oversampling_fr': 0,
+        }
+        default = {**default_main, **default_extra}
+        if jtfs_kwargs is None:
+            jtfs_kwargs = default.copy()
+        else:
+            # fill what's unspecified
+            for k, v in default.items():
+                if k not in jtfs_kwargs:
+                    jtfs_kwargs[k] = v
+        self.jtfs = TimeFrequencyScattering1D(**jtfs_kwargs).cuda()
 
     def run(self):
 
@@ -131,9 +157,14 @@ class JTFSExtractor(Extractor):
         for subset, loader in loaders:
             subset_dir = os.path.join(self.output_dir, subset)
             make_directory(subset_dir)
+            names = os.listdir(subset_dir)
             print(f'Extracting JTFS for {subset} set ...')
             for idx, item in tqdm(enumerate(loader)):
+                if item is None:
+                    continue
                 audio, _, fname = item
+                out_path = os.path.join(subset_dir, os.path.splitext(fname)[0])
+
                 audio = normalize_audio(audio)
                 Sx = self.jtfs(audio)
 
@@ -142,10 +173,10 @@ class JTFSExtractor(Extractor):
                         # collect S1 and S2 integrated over time and lambda
                         s1, s2 = Sx[0][0], Sx[1][0]
 
-                        self.lambda_train.append(s1[1:])
-                        self.lambda2_train.append(s2)
+                        if self.postprocess_mode == 'gpu':
+                            self.lambda_train.append(s1[1:])
+                            self.lambda2_train.append(s2)
                     Sx = [s.cpu().numpy() for s in Sx]
-                    out_path = os.path.join(subset_dir, os.path.splitext(fname)[0])
                     np.save(out_path + '_S1', Sx[0])
                     np.save(out_path + '_S2', Sx[1])
                 else:
@@ -153,28 +184,17 @@ class JTFSExtractor(Extractor):
                     if subset == 'training':
                         # collect S1 and S2 integrated over time and lambda
                         s_mu = Sx.mean(dim=-1)
-                        self.lambda_train.append(s_mu)
+                        if self.postprocess_mode == 'gpu':
+                            self.lambda_train.append(s_mu)
                     out_path = os.path.join(subset_dir, os.path.splitext(fname)[0])
                     np.save(out_path, Sx.cpu().numpy())
 
-    def stats(self, version=None):
+    def stats(self):
         print('Computing Mean Stat ...')
-        if version is None:
-            try:
-                (mu_z_s1, mu_z_s2, std_z_s1, std_z_s2
-                 ) = self.stats_on_gpu()
-            except:
-                try:
-                    (mu_z_s1, mu_z_s2, std_z_s1, std_z_s2
-                     ) = self.stats_on_cpu('vectorized')
-                except:
-                    (mu_z_s1, mu_z_s2, std_z_s1, std_z_s2
-                     ) = self.stats_on_cpu('loop')
-        else:
-            fn = {'gpu': self.stats_on_gpu,
-                  'vectorized': lambda: self.stats_on_cpu('vectorized'),
-                  'loop': lambda: self.stats_on_cpu('loop')}[version]
-            mu_z_s1, mu_z_s2, std_z_s1, std_z_s2 = fn()
+        fn = {'gpu': self.stats_on_gpu,
+              'vectorized': lambda: self.stats_on_cpu('vectorized'),
+              'loop': lambda: self.stats_on_cpu('loop')}[self.postprocess_mode]
+        mu_z_s1, mu_z_s2, std_z_s1, std_z_s2 = fn()
 
         def cpu(x):
             return (x if isinstance(x, np.ndarray) else
@@ -182,12 +202,15 @@ class JTFSExtractor(Extractor):
 
         stats_path = os.path.join(self.output_dir, 'stats')
         make_directory(stats_path)
-        np.save(os.path.join(stats_path, 'mu_s1'), cpu(self.mu_s1))
-        np.save(os.path.join(stats_path, 'mu_s2'), cpu(self.mu_s2))
-        np.save(os.path.join(stats_path, 'mu_z_s1'), cpu(mu_z_s1))
-        np.save(os.path.join(stats_path, 'mu_z_s2'), cpu(mu_z_s2))
-        np.save(os.path.join(stats_path, 'std_z_s1'), cpu(std_z_s1))
-        np.save(os.path.join(stats_path, 'std_z_s2'), cpu(std_z_s2))
+        def save_as_numpy(path, arr):
+            np.save(os.path.join(stats_path, path), cpu(arr))
+
+        save_as_numpy('mu_s1', self.mu_s1)
+        save_as_numpy('mu_s2', self.mu_s2)
+        save_as_numpy('mu_z_s1', mu_z_s1)
+        save_as_numpy('mu_z_s2', mu_z_s2)
+        save_as_numpy('std_z_s1', std_z_s1)
+        save_as_numpy('std_z_s2', std_z_s2)
 
     def stats_on_gpu(self):
         samples_s1 = torch.stack(self.lambda_train)
@@ -207,7 +230,7 @@ class JTFSExtractor(Extractor):
         return mu_z_s1, mu_z_s2, std_z_s1, std_z_s2
 
     def stats_on_cpu(self, version):
-        paths = [str(p) for p in Path(self.output_dir).iterdir()
+        paths = [str(p) for p in Path(self.output_dir, 'training').iterdir()
                  if p.suffix == '.npy']
         paths_s1 = [p for p in paths if Path(p).stem.endswith('_S1')]
         paths_s2 = [p for p in paths if Path(p).stem.endswith('_S2')]
@@ -298,9 +321,10 @@ class Scat1DExtractor(Extractor):
                  data_module,
                  scat1d_kwargs={
                     'shape': 2**16,
-                    'J': 8,
+                    'J': 13,
                     'T': 2**11,
-                    'Q': 16}):
+                    'Q': 16,
+                    'max_pad_factor': 3}):
         super().__init__(output_dir, data_module)
         self.output_dir = make_abspath(output_dir)
         self.data_module = data_module
@@ -327,15 +351,14 @@ class Scat1DExtractor(Extractor):
                 Sx = self.scat1d(audio)[self.idxs]
                 if subset == 'training':
                     # collect integrated over time
-                    self.lambda_train.append(Sx.mean(dim=-1))
+                    self.lambda_train.append(Sx.mean(dim=-1).cpu().numpy())
 
                 out_path = os.path.join(subset_dir, os.path.splitext(fname)[0])
                 np.save(out_path, Sx.cpu().numpy())
 
 
 def process_msdb_jtfs(data_dir='import/c4dm-datasets/medley-solos-db/',
-                      feature='jtfs',
-                      out_dir_id=''):
+                      feature='cqt', out_dir_id=''):
     """ Script to save Medley-Solos-DB time-frequency scattering coefficients
         and stats to disk
     Args:
@@ -346,7 +369,8 @@ def process_msdb_jtfs(data_dir='import/c4dm-datasets/medley-solos-db/',
     output_dir = os.path.join(make_abspath(data_dir),
                               fix_path_sep(feature + out_dir_id))
     make_directory(output_dir)
-    data_module = MedleyDataModule(data_dir, batch_size=32, feature='')
+    data_module = MedleyDataModule(data_dir, batch_size=32, feature='',
+                                   out_dir_to_skip=output_dir)
     data_module.setup()
 
     if feature == 'jtfs':
@@ -355,6 +379,7 @@ def process_msdb_jtfs(data_dir='import/c4dm-datasets/medley-solos-db/',
         extractor = Scat1DExtractor(output_dir, data_module)
     elif feature == 'cqt':
         extractor = CQTExtractor(output_dir, data_module)
+
     extractor.run()
     extractor.stats()
 

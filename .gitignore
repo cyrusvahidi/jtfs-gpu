@@ -170,3 +170,4 @@ cython_debug/
 
 .DS_Store
 nyu/stfr-like-model/
+*wandb*
