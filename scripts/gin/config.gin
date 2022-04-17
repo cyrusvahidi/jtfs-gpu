@@ -2,7 +2,7 @@
 MSDB_DATA_DIR = '/import/c4dm-datasets/medley-solos-db/'
 MSDB_CSV = '/import/c4dm-datasets/medley-solos-db/annotation/Medley-solos-DB_metadata.csv'
 
-FEATURE = 'cqt'
+FEATURE = 'jtfs'
 LEARN_ADALOG = False
 ACCURACY_AVG = 'weighted'
 

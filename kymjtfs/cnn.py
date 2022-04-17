@@ -60,8 +60,7 @@ class MedleySolosClassifier(LightningModule):
         self.val_acc = None
         self.val_loss = None
 
-        self.is_2d_conv = (self.feature == 'cqt' or
-                           (self.feature == 'jtfs' and '3D' in self.feature_spec))
+        self.is_2d_conv = (self.feature == 'cqt' or self.feature == 'jtfs')
 
         stats_dir = make_abspath(stats_dir)
         if self.feature in ('jtfs', 'scat1d'):
@@ -88,7 +87,7 @@ class MedleySolosClassifier(LightningModule):
                     self.mu_z = load_as_tensor('stats/mu_z.npy')
                     self.std_z = load_as_tensor('stats/std_z.npy')
 
-            if self.feature == 'jtfs' and '3D' in self.feature_spec:
+            if self.feature == 'jtfs':
                 s1_channels = 4
                 self.s1_conv1 = nn.Sequential(
                     nn.Conv2d(1, s1_channels, kernel_size=(16, 1)),
@@ -423,7 +422,7 @@ class MedleySolosDB(Dataset):
         uuid = df_item['uuid4']
         instr_id = df_item['instrument_id']
         subset = df_item['subset']
-        if self.feature == 'jtfs' and '3D' in self.feature_spec:
+        if self.feature == 'jtfs':
             s1 = f'Medley-solos-DB_{subset}-{instr_id}_{uuid}_S1{ext}'
             s2 = f'Medley-solos-DB_{subset}-{instr_id}_{uuid}_S2{ext}'
             return s1, s2
@@ -443,15 +442,14 @@ class MedleySolosDB(Dataset):
 
         y = int(item['instrument_id'])
 
-        if self.feature == 'jtfs' and '3D' in self.feature_spec:
+        if self.feature == 'jtfs':
             s1_fname, s2_fname = self.build_fname(item, '.npy')
 
             s1 = np.load(os.path.join(self.feature_dir, s1_fname))
             s2 = np.load(os.path.join(self.feature_dir, s2_fname))
             Sx = (s1, s2)
             return Sx, y
-        elif (self.feature in ('scat1d', 'cqt') or
-              (self.feature == 'jtfs' and '2D' in self.feature_spec)):
+        elif (self.feature in ('scat1d', 'cqt')):
             fname = self.build_fname(item, '.npy')
             Sx = np.load(os.path.join(self.feature_dir, fname))
             return Sx, y
