@@ -3,12 +3,20 @@ import fire, tqdm
 import numpy as np, matplotlib.pyplot as plt, scipy
 import librosa, librosa.feature, librosa.display
 import torch
+import warnings
 
 from fractions import Fraction
-import openl3
 from kymatio.torch import TimeFrequencyScattering1D, Scattering1D
-
 from sklearn.manifold import Isomap
+
+try:
+    import openl3
+    skip_openl3 = False
+except:
+    # TODO implement skipping
+    skip_openl3 = True
+    warnings.warn("Could not import `openl3`, will skip experiment")
+
 
 def sinusoid(f0, duration, sr):
     t = np.arange(0, duration, 1/sr)
@@ -62,11 +70,17 @@ def extract_time_scattering(audio, duration, sr, **ts_kwargs):
                         Q=1,
                         # Q=8,
 <<<<<<< HEAD
+<<<<<<< HEAD
                         pad_mode='zero',
                         J=int(np.log2(N) - 1),).cuda()
     
 =======
                         J=12).cuda()
+=======
+                        pad_mode='zero',
+                        max_pad_factor=3,
+                        J=int(np.log2(N) - 1)).cuda()
+>>>>>>> bd5c3ae5f0d5b36509afe038d881df8e45c54145
 
 >>>>>>> 56ac3012d8152797ded89092a60eba6e1747c49f
     X = torch.tensor(audio).cuda()
@@ -83,9 +97,10 @@ def extract_time_scattering(audio, duration, sr, **ts_kwargs):
 def extract_jtfs(audio, duration, sr, **jtfs_kwargs):
     N = duration * sr
     jtfs = TimeFrequencyScattering1D(
-        shape=(N, ),
+        shape=(N,),
         T=N,
         Q=8,
+<<<<<<< HEAD
 <<<<<<< HEAD
         J=int(np.log2(N) - 1),
         max_pad_factor=3, 
@@ -97,6 +112,15 @@ def extract_jtfs(audio, duration, sr, **jtfs_kwargs):
         max_pad_factor=1,
         max_pad_factor_fr=1).cuda()
 >>>>>>> 56ac3012d8152797ded89092a60eba6e1747c49f
+=======
+        J=int(np.log2(N) - 1),
+        pad_mode='zero',
+        pad_mode_fr='zero',
+        max_pad_factor=3,
+        max_pad_factor_fr=None,
+        sampling_filters_fr='resample').cuda()
+    
+>>>>>>> bd5c3ae5f0d5b36509afe038d881df8e45c54145
     X = torch.tensor(audio).cuda()
     n_samples, n_paths = X.shape[0], jtfs(X[0]).shape[1]
     sx = torch.zeros(n_samples, n_paths)

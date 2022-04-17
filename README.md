@@ -16,7 +16,13 @@
 Examples of Time-Frequency Scattering in Kymatio, for audio signals
 
 ## How to run   
-First, install dependencies   
+
+First, install dependencies
+
+### Installation v1
+
+Pip only, no IDE
+
 ```bash
 # clone project   
 git clone https://github.com/rastegah/kymatio-jtfs
@@ -27,37 +33,60 @@ pip install -e .
 pip install -r requirements.txt
 pip install git+https://github.com/kymatio/kymatio.git@refs/pull/674/head
  ```   
-  Run Jupyter   
-   ```bash
-# module folder
-   cd kymatio-jtfs
 
-# run notebooks
-jupyter notebook
+### Installation v2
+
+With Anaconda & Spyder
+
+```bash
+# clone project   
+git clone https://github.com/rastegah/kymatio-jtfs
+
+# install project
+cd kymatio-jtfs
+# for much faster install resolution
+conda install mamba
+conda create kymj
+conda activate kymj
+mamba env update --file conda-env-kymj.yml
+pip install --file pip-env-kymj.txt
+
+pip install -e git+https://github.com/mathieulagrange/doce.git@3ad246067c6a8ac829899e7e888f4debbad80629#egg=doce
+pip install git+https://github.com/PyTorchLightning/metrics.git@3af729508289d3babf0e166d9e8405cb2b0758a2
+pip install git+https://github.com/OverLordGoldDragon/kymatio.git@refs/pull/16/head
 ```
 
-### Notebook Guide
+### ConvNet Classifier
 
-#### Scale-Rate Visualisations
+[Download Medley-solos-DB](https://zenodo.org/record/3464194)
 
-#### Synthetic amplitude-modulated chirp dataset
-* Factors of variation: 
- * $f_c$ carrier frequency
- * $f_m$ amplitude modulation frequency
- * $\gamma$ chirp rate
+#### Extract Scattering Features
+``` bash
+python scripts/process_msdb_features.py --data_dir <your_msdb_dir> --feature <feature_to_extract>
+```
 
-#### Manifold Embedding of the Nearest Neighbour Graph
-* MFCCs
-* Time Scattering
-* Time-Frequency Scattering
-* Open-L3
-* Spectrotemporal Receptive Field (STRF)
+#### Configure gin
+In `/scripts/gin/config.gin` set `MSDB_DATA_DIR` and `MSDB_CSV` according to the absolute path of your MSDB download.
 
-#### K-NN regression of synthesizer parameters
+#### Run training
 
-#### 2-D CNN classifier
+``` bash
+python scripts/train_cnn.py
+```
 
-#### Differentiable Resynthesis 
+### Manifold Visualizations
+
+``` bash
+python scripts/isomap.py
+```
+see the output in `/img`
+
+### Scale-Rate Visualizations and Resynthesis
+```
+cd notebooks
+jupyter notebook
+```
+See `Scale-Rate Visualization.ipynb` and `Resynthesis results.ipynb`
 
 ### Citation   
 ```
