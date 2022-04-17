@@ -56,15 +56,28 @@ pip install git+https://github.com/PyTorchLightning/metrics.git@3af729508289d3ba
 pip install git+https://github.com/OverLordGoldDragon/kymatio.git@refs/pull/16/head
 ```
 
-### Run Jupyter
+### ConvNet Classifier
 
-```bash
-# module folder
-   cd kymatio-jtfs
+#### Download Medley-solos-DB
 
-# run notebooks
-jupyter notebook
+#### Configure gin
+
+####
+
+``` bash
+python scripts/train_cnn.py
 ```
+
+### Manifold Visualizations
+
+``` bash
+python scripts/isomap.py
+```
+see the output in `/img`
+
+### Scale-Rate Visualizations
+
+### Resynthesis
 
 ### Citation   
 ```
