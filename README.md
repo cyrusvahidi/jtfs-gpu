@@ -66,29 +66,6 @@ pip install git+https://github.com/OverLordGoldDragon/kymatio.git@refs/pull/16/h
 jupyter notebook
 ```
 
-### Notebook Guide
-
-#### Scale-Rate Visualisations
-
-#### Synthetic amplitude-modulated chirp dataset
-* Factors of variation: 
- * $f_c$ carrier frequency
- * $f_m$ amplitude modulation frequency
- * $\gamma$ chirp rate
-
-#### Manifold Embedding of the Nearest Neighbour Graph
-* MFCCs
-* Time Scattering
-* Time-Frequency Scattering
-* Open-L3
-* Spectrotemporal Receptive Field (STRF)
-
-#### K-NN regression of synthesizer parameters
-
-#### 2-D CNN classifier
-
-#### Differentiable Resynthesis 
-
 ### Citation   
 ```
 @article{YourName,
