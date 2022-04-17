@@ -14,8 +14,6 @@ from torchmetrics import Accuracy, ClasswiseWrapper
 from pytorch_lightning.core.lightning import LightningModule
 from nnAudio.features import CQT
 from kymatio.torch import TimeFrequencyScattering1D
-
-from kymjtfs.batch_norm import ScatteringBatchNorm
 from kymjtfs.utils import make_abspath
 
 
