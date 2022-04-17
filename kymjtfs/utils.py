@@ -1,4 +1,5 @@
 import numpy as np, torch
+import os
 
 
 def sinusoid(f0, duration, sr):
@@ -41,3 +42,11 @@ def make_directory(dir_path):
             os.mkdir(dir_path)
         except OSError:
             print("Failed to create directory %s" % dir_path)
+
+
+def make_abspath(path):
+    return os.path.join(os.getcwd(), fix_path_sep(path))
+
+
+def fix_path_sep(path):
+    return path.replace('/', os.path.sep).replace('//', os.path.sep)
