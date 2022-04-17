@@ -1,19 +1,22 @@
 
+<<<<<<< HEAD
 MSDB_DATA_DIR = '/import/c4dm-datasets/medley-solos-db/'
 MSDB_CSV = '/import/c4dm-datasets/medley-solos-db/annotation/Medley-solos-DB_metadata.csv'
+=======
+MSDB_DATA_DIR = 'import/c4dm-datasets/medley-solos-db/'
+>>>>>>> bd5c3ae5f0d5b36509afe038d881df8e45c54145
 
-FEATURE = 'jtfs_3D_J12'
+FEATURE = 'cqt'
 LEARN_ADALOG = False
 ACCURACY_AVG = 'weighted'
 
 MedleySolosClassifier.average = %ACCURACY_AVG
-MedleySolosClassifier.csv = %MSDB_CSV
+MedleySolosClassifier.csv = 'import/c4dm-datasets/medley-solos-db/annotation/Medley-solos-DB_metadata.csv'
 MedleySolosClassifier.feature = %FEATURE
 MedleySolosClassifier.learn_adalog = %LEARN_ADALOG
 MedleySolosClassifier.std = True
 MedleySolosClassifier.c = 1e-1
 MedleySolosClassifier.stats_dir = %MSDB_DATA_DIR
-MedleySolosClassifier.csv = %MSDB_CSV
 
 MedleyDataModule.data_dir = %MSDB_DATA_DIR
 MedleyDataModule.feature = %FEATURE

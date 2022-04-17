@@ -1,5 +1,5 @@
 include '/homes/cv300/Documents/scattering/scripts/gin/doce/setting.gin'
 
-JTFS_FEATURE_DIR = '/import/c4dm-datasets/medley-solos-db/'
+JTFS_FEATURE_DIR = 'import/c4dm-datasets/medley-solos-db/'
 
 MedleySolosClassifier.stats_dir = %JTFS_FEATURE_DIR
