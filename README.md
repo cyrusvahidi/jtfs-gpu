@@ -58,11 +58,17 @@ pip install git+https://github.com/OverLordGoldDragon/kymatio.git@refs/pull/16/h
 
 ### ConvNet Classifier
 
-#### Download Medley-solos-DB
+[Download Medley-solos-DB](https://zenodo.org/record/3464194)
+
+#### Extract Scattering Features
+``` bash
+python scripts/process_msdb_features.py --data_dir <your_msdb_dir> --feature <feature_to_extract>
+```
 
 #### Configure gin
+In `/scripts/gin/config.gin` set `MSDB_DATA_DIR` and `MSDB_CSV` according to the absolute path of your MSDB download.
 
-####
+#### Run training
 
 ``` bash
 python scripts/train_cnn.py
@@ -75,9 +81,12 @@ python scripts/isomap.py
 ```
 see the output in `/img`
 
-### Scale-Rate Visualizations
-
-### Resynthesis
+### Scale-Rate Visualizations and Resynthesis
+```
+cd notebooks
+jupyter notebook
+```
+See `Scale-Rate Visualization.ipynb` and `Resynthesis results.ipynb`
 
 ### Citation   
 ```
