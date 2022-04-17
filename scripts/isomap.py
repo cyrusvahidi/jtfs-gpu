@@ -61,7 +61,8 @@ def extract_time_scattering(audio, duration, sr, **ts_kwargs):
                         T=N,
                         Q=1,
                         # Q=8,
-                        J=12).cuda()
+                        pad_mode='zero',
+                        J=int(np.log2(N) - 1),).cuda()
     
     X = torch.tensor(audio).cuda()
     n_samples = X.shape[0]
@@ -80,9 +81,11 @@ def extract_jtfs(audio, duration, sr, **jtfs_kwargs):
         shape=(N, ),
         T=N,
         Q=8,
-        J=12,
-        max_pad_factor=1, 
-        max_pad_factor_fr=1).cuda()
+        J=int(np.log2(N) - 1),
+        max_pad_factor=3, 
+        max_pad_factor_fr=3,
+        pad_mode_fr='zero',
+        pad_mode='zero').cuda()
     X = torch.tensor(audio).cuda()
     n_samples, n_paths = X.shape[0], jtfs(X[0]).shape[1]
     sx = torch.zeros(n_samples, n_paths)
@@ -230,15 +233,15 @@ def run_isomap(
     
     audio, cmap = generate_audio(f0s, fms, gammas, duration, sr)
 
-    # mfcc = extract_mfcc(audio, f0s, fms, gammas, sr)
+    mfcc = extract_mfcc(audio, f0s, fms, gammas, sr)
     ts = extract_time_scattering(audio.reshape(-1, audio.shape[-1]), duration, sr)
     jtfs = extract_jtfs(audio.reshape(-1, audio.shape[-1]), duration, sr)    
-    # ol3 = extract_openl3(audio.reshape(-1, audio.shape[-1]), sr)
-    # strf = extract_strf(audio.reshape(-1, audio.shape[-1]), duration, sr)
+    ol3 = extract_openl3(audio.reshape(-1, audio.shape[-1]), sr)
+    strf = extract_strf(audio.reshape(-1, audio.shape[-1]), duration, sr)
 
-    # X = {"MFCC": mfcc, "TS": ts, "JTFS": jtfs, "OPEN-L3": ol3, "STRF": strf}
+    X = {"MFCC": mfcc, "TS": ts, "JTFS": jtfs, "OPEN-L3": ol3, "STRF": strf}
     # X = {"MFCC": mfcc, "TS": ts, "JTFS": jtfs}
-    X = {"TS": ts, "JTFS": jtfs}
+    # X = {"TS": ts, "JTFS": jtfs}
 
     run_isomaps(X, cmap, out_dir)
 
