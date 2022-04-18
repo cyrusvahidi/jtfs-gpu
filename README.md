@@ -15,8 +15,9 @@
    
 Examples of Time-Frequency Scattering in Kymatio, for audio signals
 
-![signals](https://user-images.githubusercontent.com/16495490/161852304-a0924fe7-7a4c-471f-a150-d20339fc8dcd.png)
-![scale-rate](https://user-images.githubusercontent.com/16495490/161861321-cb3d9f2a-32f5-4abf-90f7-d9b2b85c9ae4.png)
+<img src="https://user-images.githubusercontent.com/16495490/163857080-9ae52cad-9202-4fb8-a1f5-a7d008f19073.png" alt="signal" width="800">
+<img src="https://user-images.githubusercontent.com/16495490/163851994-b35772b0-5f73-4eef-8417-26ad02bbb65c.png" alt="scale-rate" width="750">
+
 
 ## How to run   
 
