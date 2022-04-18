@@ -13,6 +13,10 @@
   -->   
   </div>
    
+Examples of Time-Frequency Scattering in Kymatio, for audio signals
+
+![signals](https://user-images.githubusercontent.com/16495490/161852304-a0924fe7-7a4c-471f-a150-d20339fc8dcd.png)
+![scale-rate](https://user-images.githubusercontent.com/16495490/161861321-cb3d9f2a-32f5-4abf-90f7-d9b2b85c9ae4.png)
 
 ## How to run   
 
@@ -85,11 +89,6 @@ cd notebooks
 jupyter notebook
 ```
 See `Scale-Rate Visualization.ipynb` and `Resynthesis results.ipynb`
-
-Examples of Time-Frequency Scattering in Kymatio, for audio signals
-
-![signals](https://user-images.githubusercontent.com/16495490/161852304-a0924fe7-7a4c-471f-a150-d20339fc8dcd.png)
-![scale-rate](https://user-images.githubusercontent.com/16495490/161861321-cb3d9f2a-32f5-4abf-90f7-d9b2b85c9ae4.png)
 
 ### Citation   
 ```
