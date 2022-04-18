@@ -74,9 +74,7 @@ In `/scripts/gin/config.gin` set `MSDB_DATA_DIR` and `MSDB_CSV` according to the
 python scripts/train_cnn.py
 ```
 
-### Isomap Manifold Visualizations & K-NN Regression
-this generates the AM/FM dataset and extracts its MFCCs, Time Scattering Coefficients, JTFS coefficients, STRFs (`/strf-like-model`) and Open-l3 embeddings. The Isomap algorithm is run on each feature and 3 principal components are visualized. K-NN regression is performed using the Isomap K-NN graph.
-
+### Isomap Visualizations & K-NN Regression
 ``` bash
 python scripts/isomap.py
 ```
