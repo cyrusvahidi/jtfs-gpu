@@ -93,10 +93,10 @@ See `Scale-Rate Visualization.ipynb` and `Resynthesis results.ipynb`
 
 ### Citation   
 ```
-@article{YourName,
+@article{muradeli2022kymatio,
   title={Differentiable Time-Frequency Scattering in Kymatio},
-  author={},
-  journal={arXiv preprint},
+  author={Muradeli, John and Vahidi, Cyrus and Wang, Changhong and Han, Han and Lostanlen, Vincent and Lagrange, Mathieu and Fazekas, George},
+  journal={arXiv preprint arXiv:2204.08269},
   year={2022}
 }
 ```   
