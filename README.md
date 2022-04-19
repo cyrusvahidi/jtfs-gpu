@@ -41,6 +41,7 @@ git clone https://github.com/rastegah/kymatio-jtfs
 cd kymatio-jtfs
 pip install -e .
 pip install -r requirements.txt
+# install the Kymatio branch with TimeFrequencyScattering1D
 pip install git+https://github.com/kymatio/kymatio.git@refs/pull/674/head
  ```   
 
