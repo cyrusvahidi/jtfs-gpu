@@ -13,7 +13,13 @@
   -->   
   </div>
    
-Examples of Time-Frequency Scattering in Kymatio, for audio signals
+Examples of Time-Frequency Scattering in Kymatio, for audio signals:
+
+* unsupervised manifold learning of spectrotemporal modulations
+* AM/FM synthesizer parameter regression
+* scale-rate visualizations
+* hybrid jtfs + convnet supervised musical instrument classification
+* texture resynthesis 
 
 <img src="https://user-images.githubusercontent.com/16495490/163857080-9ae52cad-9202-4fb8-a1f5-a7d008f19073.png" alt="signal" width="800">
 <img src="https://user-images.githubusercontent.com/16495490/163851994-b35772b0-5f73-4eef-8417-26ad02bbb65c.png" alt="scale-rate" width="750">
