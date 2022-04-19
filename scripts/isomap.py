@@ -69,20 +69,9 @@ def extract_time_scattering(audio, duration, sr, **ts_kwargs):
                         T=N,
                         Q=1,
                         # Q=8,
-<<<<<<< HEAD
-<<<<<<< HEAD
                         pad_mode='zero',
                         J=int(np.log2(N) - 1),).cuda()
-    
-=======
-                        J=12).cuda()
-=======
-                        pad_mode='zero',
-                        max_pad_factor=3,
-                        J=int(np.log2(N) - 1)).cuda()
->>>>>>> bd5c3ae5f0d5b36509afe038d881df8e45c54145
 
->>>>>>> 56ac3012d8152797ded89092a60eba6e1747c49f
     X = torch.tensor(audio).cuda()
     n_samples = X.shape[0]
     n_paths = scat(X[0]).shape[0]
@@ -100,27 +89,13 @@ def extract_jtfs(audio, duration, sr, **jtfs_kwargs):
         shape=(N,),
         T=N,
         Q=8,
-<<<<<<< HEAD
-<<<<<<< HEAD
-        J=int(np.log2(N) - 1),
-        max_pad_factor=3, 
-        max_pad_factor_fr=3,
-        pad_mode_fr='zero',
-        pad_mode='zero').cuda()
-=======
-        J=12,
-        max_pad_factor=1,
-        max_pad_factor_fr=1).cuda()
->>>>>>> 56ac3012d8152797ded89092a60eba6e1747c49f
-=======
         J=int(np.log2(N) - 1),
         pad_mode='zero',
         pad_mode_fr='zero',
         max_pad_factor=3,
         max_pad_factor_fr=None,
         sampling_filters_fr='resample').cuda()
-    
->>>>>>> bd5c3ae5f0d5b36509afe038d881df8e45c54145
+
     X = torch.tensor(audio).cuda()
     n_samples, n_paths = X.shape[0], jtfs(X[0]).shape[1]
     sx = torch.zeros(n_samples, n_paths)
@@ -272,15 +247,9 @@ def run_isomap(
 
     mfcc = extract_mfcc(audio, f0s, fms, gammas, sr)
     ts = extract_time_scattering(audio.reshape(-1, audio.shape[-1]), duration, sr)
-<<<<<<< HEAD
     jtfs = extract_jtfs(audio.reshape(-1, audio.shape[-1]), duration, sr)    
     ol3 = extract_openl3(audio.reshape(-1, audio.shape[-1]), sr)
     strf = extract_strf(audio.reshape(-1, audio.shape[-1]), duration, sr)
-=======
-    jtfs = extract_jtfs(audio.reshape(-1, audio.shape[-1]), duration, sr)
-    # ol3 = extract_openl3(audio.reshape(-1, audio.shape[-1]), sr)
-    # strf = extract_strf(audio.reshape(-1, audio.shape[-1]), duration, sr)
->>>>>>> 56ac3012d8152797ded89092a60eba6e1747c49f
 
     X = {"MFCC": mfcc, "TS": ts, "JTFS": jtfs, "OPEN-L3": ol3, "STRF": strf}
     # X = {"MFCC": mfcc, "TS": ts, "JTFS": jtfs}
