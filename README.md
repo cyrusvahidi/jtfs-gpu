@@ -2,7 +2,7 @@
   
 # Differentiable Time-Frequency Scattering in Kymatio 🌊
 
-  [![Paper](http://img.shields.io/badge/paper-arxiv.2204.08269.svg)](https://arxiv.org/abs/2204.08269)
+  [![Paper](http://img.shields.io/badge/paper-arxiv.2204.08269-B31B1B.svg)](https://arxiv.org/abs/2204.08269)
   <!--
   ARXIV   
   [![Paper](http://img.shields.io/badge/arxiv-math.co:1480.1111-B31B1B.svg)](https://www.nature.com/articles/nature14539)
