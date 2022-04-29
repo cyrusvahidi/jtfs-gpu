@@ -100,7 +100,7 @@ See `Scale-Rate Visualization.ipynb` and `Resynthesis results.ipynb`
 
 ### Citation   
 ```
-@article{muradeli2022kymatio,
+@article{muradeli2022differentiable,
   title={Differentiable Time-Frequency Scattering in Kymatio},
   author={Muradeli, John and Vahidi, Cyrus and Wang, Changhong and Han, Han and Lostanlen, Vincent and Lagrange, Mathieu and Fazekas, George},
   journal={arXiv preprint arXiv:2204.08269},
