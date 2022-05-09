@@ -1,6 +1,14 @@
  <div align="center">    
   
 # Differentiable Time-Frequency Scattering in Kymatio 🌊
+ [John Muradeli](github.com/overlordgolddragon)
+[Cyrus Vahidi](cyrusvahidi.com)<sup>2</sup>
+[Changhong Wang](https://changhongw.github.io/)<sup>1</sup>,
+[Han Han]()<sup>1</sup>,
+[Vincent Lostanlen](lostanlen.com)<sup>1</sup> <br>
+[Mathieu Lagrange]()<sup>1</sup> <br>
+[George Fazekas]()<sup>2</sup> <br>
+<sup>1</sup> LS2N/CNRS Centrale Nantes <sup>2</sup>  Queen Mary University of London 
 
   [![Paper](http://img.shields.io/badge/paper-arxiv.2204.08269-B31B1B.svg)](https://arxiv.org/abs/2204.08269)
   <!--
@@ -13,6 +21,8 @@
   -->   
   </div>
    
+This repository is the official repository of "Differentiable Time-Frequency Scattering in Kymatio".
+
 Examples of Time-Frequency Scattering in Kymatio, for audio signals:
 
 * unsupervised manifold learning of spectrotemporal modulations
