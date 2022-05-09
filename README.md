@@ -1,7 +1,7 @@
  <div align="center">    
   
 # Differentiable Time-Frequency Scattering in Kymatio 🌊
-[John Muradeli](github.com/overlordgolddragon) [Cyrus Vahidi](cyrusvahidi.com)<sup>2</sup>
+[John Muradeli](github.com/overlordgolddragon) [Cyrus Vahidi](cyrusvahidi.com)<sup>2</sup> <br>
 [Changhong Wang](https://changhongw.github.io/)<sup>1</sup>, [Han Han]()<sup>1</sup> <br>
 [Vincent Lostanlen](lostanlen.com)<sup>1</sup>, [Mathieu Lagrange]()<sup>1</sup> <br>
 [George Fazekas]()<sup>2</sup> <br>
