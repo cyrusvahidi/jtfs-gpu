@@ -18,9 +18,9 @@
   -->   
   </div>
    
-This repository is the official repository of "Differentiable Time-Frequency Scattering in Kymatio".
+This repository is for the paper "Differentiable Time-Frequency Scattering in Kymatio" (2022).
 
-We assess Time-Frequency Scattering in Kymatio, for 3 machine listening research applications:
+We assess Time-Frequency Scattering in Kymatio for 3 machine listening research applications:
 
 * unsupervised manifold learning of spectrotemporal modulations
 * hybrid jtfs + convnet supervised musical instrument classification
