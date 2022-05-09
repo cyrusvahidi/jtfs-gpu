@@ -1,7 +1,7 @@
  <div align="center">    
   
 # Differentiable Time-Frequency Scattering in Kymatio 🌊
-[John Muradeli](github.com/overlordgolddragon) [Cyrus Vahidi](cyrusvahidi.com)<sup>2</sup> <br>
+[John Muradeli](github.com/overlordgolddragon), [Cyrus Vahidi](cyrusvahidi.com)<sup>2</sup> <br>
 [Changhong Wang](https://changhongw.github.io/)<sup>1</sup>, [Han Han]()<sup>1</sup> <br>
 [Vincent Lostanlen](lostanlen.com)<sup>1</sup>, [Mathieu Lagrange]()<sup>1</sup> <br>
 [George Fazekas]()<sup>2</sup> <br>
@@ -20,13 +20,13 @@
    
 This repository is the official repository of "Differentiable Time-Frequency Scattering in Kymatio".
 
-Examples of Time-Frequency Scattering in Kymatio, for audio signals:
+We assess Time-Frequency Scattering in Kymatio, for 3 machine listening research applications:
 
 * unsupervised manifold learning of spectrotemporal modulations
-* AM/FM synthesizer parameter regression
-* scale-rate visualizations
 * hybrid jtfs + convnet supervised musical instrument classification
 * texture resynthesis 
+
+We also provide scale-rate visualizations:
 
 <img src="https://user-images.githubusercontent.com/16495490/163857080-9ae52cad-9202-4fb8-a1f5-a7d008f19073.png" alt="signal" width="800">
 <img src="https://user-images.githubusercontent.com/16495490/163851994-b35772b0-5f73-4eef-8417-26ad02bbb65c.png" alt="scale-rate" width="750">
