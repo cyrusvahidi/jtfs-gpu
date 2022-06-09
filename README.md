@@ -36,9 +36,7 @@ We also provide scale-rate visualizations:
 
 First, install dependencies
 
-### Installation v1
-
-Pip only, no IDE
+### Installation
 
 ```bash
 # clone project   
@@ -48,31 +46,12 @@ git clone https://github.com/rastegah/kymatio-jtfs
 cd kymatio-jtfs
 pip install -e .
 pip install -r requirements.txt
-# install the Kymatio branch with TimeFrequencyScattering1D
-pip install git+https://github.com/kymatio/kymatio.git@refs/pull/674/head
- ```   
 
-### Installation v2
-
-With Anaconda & Spyder
-
-```bash
-# clone project   
-git clone https://github.com/rastegah/kymatio-jtfs
-
-# install project
-cd kymatio-jtfs
-# for much faster install resolution
-conda install mamba
-conda create kymj
-conda activate kymj
-mamba env update --file conda-env-kymj.yml
-pip install --file pip-env-kymj.txt
-
-pip install -e git+https://github.com/mathieulagrange/doce.git@3ad246067c6a8ac829899e7e888f4debbad80629#egg=doce
-pip install git+https://github.com/PyTorchLightning/metrics.git@3af729508289d3babf0e166d9e8405cb2b0758a2
-pip install git+https://github.com/OverLordGoldDragon/kymatio.git@refs/pull/16/head
-```
+# install kymatio from source
+cd kymatio
+pip install -r requirements.txt
+python setup.py install
+```   
 
 ### ConvNet Classifier
 
