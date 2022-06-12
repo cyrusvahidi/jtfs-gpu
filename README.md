@@ -18,7 +18,7 @@
   -->   
   </div>
    
-This repository is for the paper "Differentiable Time-Frequency Scattering in Kymatio" (2022).
+This repository is for the paper "Differentiable Time-Frequency Scattering in Kymatio" (accepted to DAFx 2022).
 
 We assess Time-Frequency Scattering in Kymatio for 3 machine listening research applications:
 
