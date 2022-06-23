@@ -8,7 +8,7 @@
 [Vincent Lostanlen](lostanlen.com)<sup>1</sup>
 LS2N/CNRS Centrale Nantes <sup>2</sup>  Queen Mary University of London 
  
-many thanks to all opens-source contributors of ![Kymatio](https://github.com/kymatio/kymatio) and dependent libraries
+many thanks to all opens-source contributors of ![Kymatio](https://github.com/kymatio/kymatio) and its dependencies
 
 
   [![Paper](http://img.shields.io/badge/paper-arxiv.2204.08269-B31B1B.svg)](https://arxiv.org/abs/2204.08269)
