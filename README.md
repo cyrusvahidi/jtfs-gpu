@@ -1,10 +1,10 @@
  <div align="center">    
   
 # Differentiable Time-Frequency Scattering in Kymatio 🌊
+source code by
 [John Muradeli](github.com/overlordgolddragon), [Cyrus Vahidi](cyrusvahidi.com)<sup>2</sup> <br>
 [Changhong Wang](https://changhongw.github.io/)<sup>1</sup>, [Han Han]()<sup>1</sup> <br>
-[Vincent Lostanlen](lostanlen.com)<sup>1</sup>, [Mathieu Lagrange]()<sup>1</sup> <br>
-[George Fazekas]()<sup>2</sup> <br>
+[Vincent Lostanlen](lostanlen.com)<sup>1</sup>
 <sup>1</sup> LS2N/CNRS Centrale Nantes <sup>2</sup>  Queen Mary University of London 
 
   [![Paper](http://img.shields.io/badge/paper-arxiv.2204.08269-B31B1B.svg)](https://arxiv.org/abs/2204.08269)
