@@ -53,6 +53,8 @@ pip install -r requirements.txt
 python setup.py install
 ```   
 
+An implementation of time-frequency scattering will be available in the unreleased ![WaveSpin](https://github.com/overLordGoldDragon/wavespin) package
+
 ### ConvNet Classifier
 
 [Download Medley-solos-DB](https://zenodo.org/record/3464194)
