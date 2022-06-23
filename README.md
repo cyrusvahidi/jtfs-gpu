@@ -6,7 +6,7 @@
 [John Muradeli](github.com/overlordgolddragon), [Cyrus Vahidi](cyrusvahidi.com)<sup>2</sup> <br>
 [Changhong Wang](https://changhongw.github.io/)<sup>1</sup>, [Han Han]()<sup>1</sup> <br>
 [Vincent Lostanlen](lostanlen.com)<sup>1</sup>
-<sup>1</sup> LS2N/CNRS Centrale Nantes <sup>2</sup>  Queen Mary University of London 
+LS2N/CNRS Centrale Nantes <sup>2</sup>  Queen Mary University of London 
  
 many thanks to all opens-source contributors of ![Kymatio](https://github.com/kymatio/kymatio) and dependent libraries
 
