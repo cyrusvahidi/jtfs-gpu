@@ -1,6 +1,6 @@
  <div align="center">    
   
-# Differentiable Time-Frequency Scattering in Kymatio 🌊
+# Differentiable Time-Frequency Scattering in Kymatio-WaveSpin 🌊
 
 ### source code by
 [John Muradeli](github.com/overlordgolddragon), [Cyrus Vahidi](cyrusvahidi.com)<sup>2</sup> <br>
@@ -57,7 +57,7 @@ pip install -r requirements.txt
 python setup.py install
 ```   
 
-An implementation of time-frequency scattering will be available in the unreleased ![WaveSpin](https://github.com/overLordGoldDragon/wavespin) package
+An experimental implementation of time-frequency scattering will soon be available in: ![WaveSpin](https://github.com/overLordGoldDragon/wavespin) package
 
 ### ConvNet Classifier
 
