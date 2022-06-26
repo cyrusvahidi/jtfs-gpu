@@ -3,9 +3,9 @@
 # Differentiable Time-Frequency Scattering in Kymatio-WaveSpin 🌊
 
 ### source code by
-[John Muradeli](github.com/overlordgolddragon), [Cyrus Vahidi](cyrusvahidi.com)<sup>2</sup> <br>
-[Changhong Wang](https://changhongw.github.io/)<sup>1</sup>, [Han Han]()<sup>1</sup> <br>
-[Vincent Lostanlen](lostanlen.com)<sup>1</sup> <br>
+[John Muradeli](), [Cyrus Vahidi]()<sup>2</sup> <br>
+[Changhong Wang]()<sup>1</sup>, [Han Han]()<sup>1</sup> <br>
+[Vincent Lostanlen]()<sup>1</sup> <br>
 LS2N/CNRS Centrale Nantes <sup>2</sup>  Queen Mary University of London 
 
 
