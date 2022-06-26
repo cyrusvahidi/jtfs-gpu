@@ -7,7 +7,7 @@
 [Changhong Wang]()<sup>1</sup>, [Han Han]()<sup>1</sup> 
 [Vincent Lostanlen]()<sup>1</sup> <br>
 [John Muradeli]() <br>
-LS2N/CNRS Centrale Nantes <sup>2</sup>  Queen Mary University of London 
+LS2N/CNRS Centrale Nantes <sup>1</sup>  Queen Mary University of London<sup>2</sup>
 
 
   [![Paper](http://img.shields.io/badge/paper-arxiv.2204.08269-B31B1B.svg)](https://arxiv.org/abs/2204.08269)
