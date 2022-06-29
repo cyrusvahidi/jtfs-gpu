@@ -1,6 +1,6 @@
  <div align="center">    
   
-# Differentiable Time-Frequency Scattering in Kymatio-WaveSpin 🌊
+# Differentiable Time-Frequency Scattering on GPU 🌊
 
 ### source code by
 [Cyrus Vahidi]()<sup>2</sup> <br>
@@ -23,7 +23,7 @@ LS2N/CNRS Centrale Nantes<sup>1</sup>  Queen Mary University of London<sup>2</su
   
 many thanks to all opens-source contributors of ![Kymatio](https://github.com/kymatio/kymatio) and its dependencies
    
-This repository is for the paper "Differentiable Time-Frequency Scattering in Kymatio" (accepted to DAFx 2022).
+This repository is for the paper "Differentiable Time-Frequency Scattering on GPU" (accepted to DAFx 2022).
 
 We assess Time-Frequency Scattering in Kymatio for 3 machine listening research applications:
 
@@ -45,7 +45,7 @@ First, install dependencies
 
 ```bash
 # clone project   
-git clone https://github.com/rastegah/kymatio-jtfs
+git clone https://github.com/cyrusvahidi/jtfs-gpu
 
 # install project   
 cd kymatio-jtfs
