@@ -22,3 +22,9 @@
 ![resynthjtfsgull](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_jtfs_acc_j12_q12_t13.wav)
 
 
+<ul class="bodyColum2">
+  <audio controls height="40px" width="100px">
+     <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/laughinggull.wav" type="audio/mpeg">
+     <embed height="50" width="100" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/laughinggull.wav">
+  </audio>
+</ul>
