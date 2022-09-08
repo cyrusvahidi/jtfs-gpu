@@ -8,45 +8,52 @@
 
 ## Amplitude-Modulated Chirp Signals
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/scale_reate_visual/moduChirp/moduChirp.gif"/>
+</p>
+
 ### Visualization of Isomap embedding
+![jtfs](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/JTFS/isomap.png)
+![mfcc](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/MFCC/isomap.png)
+![OPENL3](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/OPEN-L3/isomap.png)
+![TS](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/TS/isomap.png)
+![strf](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/STRF/isomap.png)
 
 ### K-NN parameter regression
-
+![knn](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/knn.png)
 ## 2-D ConvNet for musical instrument classification
-
+![convnet](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/jtfs-cnn.png)
 ## Resynthesis from scattering coefficients
 ![resynthesis](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/reconstruction_birds.png)
 
 <ul class="bodyColum2">
-  <audio controls height="40px" width="50px">
+  <audio controls height="40px" width="100px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/laughinggull.wav" type="audio/mpeg">
-     <embed height="50" width="50" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/laughinggull.wav">
+     <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/laughinggull.wav">
   </audio>
-  <audio controls height="40px" width="50px">
+  <audio controls height="40px" width="100px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/goshawk.wav" type="audio/mpeg">
-     <embed height="50" width="50" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/goshawk.wav">
+     <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/goshawk.wav">
   </audio>
 </ul>
 
 <ul class="bodyColum2">
  <audio controls height="40px" width="50px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_timesc_gull_j12_q12_t13.wav" type="audio/mpeg">
-     <embed height="50" width="50" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_timesc_gull_j12_q12_t13.wav">
+     <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_timesc_gull_j12_q12_t13.wav">
   </audio>
   <audio controls height="40px" width="50px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_timesc_acc_j12_q12_t13.wav" type="audio/mpeg">
-     <embed height="50" width="50" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_timesc_acc_j12_q12_t13.wav">
+     <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_timesc_acc_j12_q12_t13.wav">
   </audio>
 </ul>
 
 <ul class="bodyColum2">
- <audio controls height="40px" width="50px">
+ <audio controls height="40px" width="100px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_jtfs_gull_j12_q12_t13.wav" type="audio/mpeg">
-     <embed height="50" width="50" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_jtfs_gull_j12_q12_t13.wav">
-   </audio>
-  <audio controls height="40px" width="50px">
+     <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_jtfs_gull_j12_q12_t13.wav">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_jtfs_acc_j12_q12_t13.wav" type="audio/mpeg">
-     <embed height="50" width="50" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_jtfs_acc_j12_q12_t13.wav">
+     <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_jtfs_acc_j12_q12_t13.wav">
   </audio>
 </ul>
 
