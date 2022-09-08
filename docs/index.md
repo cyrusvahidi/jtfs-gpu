@@ -18,33 +18,35 @@
 ![resynthesis](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/reconstruction_birds.png)
 
 <ul class="bodyColum2">
-  <audio controls height="40px" width="100px">
+  <audio controls height="40px" width="50px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/laughinggull.wav" type="audio/mpeg">
-     <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/laughinggull.wav">
+     <embed height="50" width="50" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/laughinggull.wav">
   </audio>
-  <audio controls height="40px" width="100px">
+  <audio controls height="40px" width="50px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/goshawk.wav" type="audio/mpeg">
-     <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/goshawk.wav">
+     <embed height="50" width="50" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/goshawk.wav">
   </audio>
 </ul>
 
 <ul class="bodyColum2">
  <audio controls height="40px" width="50px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_timesc_gull_j12_q12_t13.wav" type="audio/mpeg">
-     <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_timesc_gull_j12_q12_t13.wav">
+     <embed height="50" width="50" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_timesc_gull_j12_q12_t13.wav">
   </audio>
   <audio controls height="40px" width="50px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_timesc_acc_j12_q12_t13.wav" type="audio/mpeg">
-     <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_timesc_acc_j12_q12_t13.wav">
+     <embed height="50" width="50" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_timesc_acc_j12_q12_t13.wav">
   </audio>
 </ul>
 
 <ul class="bodyColum2">
- <audio controls height="40px" width="100px">
+ <audio controls height="40px" width="50px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_jtfs_gull_j12_q12_t13.wav" type="audio/mpeg">
-     <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_jtfs_gull_j12_q12_t13.wav">
+     <embed height="50" width="50" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_jtfs_gull_j12_q12_t13.wav">
+   </audio>
+  <audio controls height="40px" width="50px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_jtfs_acc_j12_q12_t13.wav" type="audio/mpeg">
-     <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_jtfs_acc_j12_q12_t13.wav">
+     <embed height="50" width="50" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_jtfs_acc_j12_q12_t13.wav">
   </audio>
 </ul>
 
