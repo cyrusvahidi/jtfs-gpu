@@ -13,14 +13,7 @@
 </p>
 
 ### Visualization of Isomap embedding
-<p align="center" width="100%">
-    <img height="20%" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/JTFS/isomap.png">
-    <img height="20%" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/MFCC/isomap.png">
-    <img height="20%" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/OPEN-L3/isomap.png">
-    <img height="20%" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/TS/isomap.png">
-    <img height="20%" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/STRF/isomap.png">
-</p>
-
+![isomaps](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/isomaps.png)
 
 ### K-NN parameter regression
 ![knn](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/knn.png)
