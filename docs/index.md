@@ -43,17 +43,17 @@
 
 <ul class="bodyColum2"> 
   <strong>Northern goshawk</strong> <br>
-  (e) original <br>
+  (d) original <br>
   <audio controls height="40px" width="100px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/goshawk.wav" type="audio/mpeg">
      <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/goshawk.wav">
   </audio> <br>
-  (f) time scat <br>
+  (e) time scat <br>
   <audio controls height="40px" width="50px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_timesc_acc_j12_q12_t13.wav" type="audio/mpeg">
      <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_timesc_acc_j12_q12_t13.wav">
   </audio> <br>
-  (g) jtfs <br>
+  (f) jtfs <br>
   <audio controls height="40px" width="50px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_jtfs_acc_j12_q12_t13.wav" type="audio/mpeg">
      <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_jtfs_acc_j12_q12_t13.wav">
