@@ -29,36 +29,38 @@
 ## Resynthesis from scattering coefficients
 ![resynthesis](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/reconstruction_birds.png)
 
-<ul class="bodyColum2"> (a) Laughing gull (original)
+<ul class="bodyColum2"> 
+  Laughing gull <br>
+  (a) original
   <audio controls height="40px" width="100px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/laughinggull.wav" type="audio/mpeg">
      <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/laughinggull.wav">
   </audio> <br>
-  (d) Northern goshawk (original)
-  <audio controls height="40px" width="100px">
-     <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/goshawk.wav" type="audio/mpeg">
-     <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/goshawk.wav">
-  </audio>
-</ul>
-
-<ul class="bodyColum2"> (b) Laughing gull (time scat)
+ (b) time scat
  <audio controls height="40px" width="50px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_timesc_gull_j12_q12_t13.wav" type="audio/mpeg">
      <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_timesc_gull_j12_q12_t13.wav">
   </audio> <br>
-  (e) Northern goshawk (time scat)
-  <audio controls height="40px" width="50px">
-     <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_timesc_acc_j12_q12_t13.wav" type="audio/mpeg">
-     <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_timesc_acc_j12_q12_t13.wav">
-  </audio>
-</ul>
-
-<ul class="bodyColum2"> (c) Laughing gull (jtfs)
+ (c) jtfs
  <audio controls height="40px" width="100px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_jtfs_gull_j12_q12_t13.wav" type="audio/mpeg">
      <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_jtfs_gull_j12_q12_t13.wav">
   </audio> <br>
-  (f) Northern goshawk (jtfs)
+</ul>
+
+<ul class="bodyColum2"> 
+  Northern goshawk <br>
+  (e) original
+  <audio controls height="40px" width="100px">
+     <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/goshawk.wav" type="audio/mpeg">
+     <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/goshawk.wav">
+  </audio>
+  (f) time scat
+  <audio controls height="40px" width="50px">
+     <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_timesc_acc_j12_q12_t13.wav" type="audio/mpeg">
+     <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_timesc_acc_j12_q12_t13.wav">
+  </audio>
+  (g) jtfs
   <audio controls height="40px" width="50px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_jtfs_acc_j12_q12_t13.wav" type="audio/mpeg">
      <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/reconstructed_jtfs_acc_j12_q12_t13.wav">
