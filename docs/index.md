@@ -15,21 +15,7 @@
 ## 2-D ConvNet for musical instrument classification
 
 ## Resynthesis from scattering coefficients
-![resynthesis](https://github.com/cyrusvahidi/jtfs-gpu/blob/main/img/reconstruction_birds.png)
-
-<img><source src="https://github.com/cyrusvahidi/jtfs-gpu/blob/main/img/reconstruction_birds.png" type="audio/mpeg">
-     <embed height="160" width="300" src="https://github.com/cyrusvahidi/jtfs-gpu/blob/main/img/reconstruction_birds.png">
-  </img>
-  
-<ul class="bodyColum2">
-  <img><source src="../img/reconstruction_birds.png" type="audio/mpeg">
-     <embed height="160" width="300" src="../img/reconstruction_birds.png">
-  </img>
-  <audio controls height="40px" width="100px">
-     <source src="../../audio/laughinggull.wav" type="audio/mpeg">
-     <embed height="50" width="100" src="../../audio/laughinggull.wav">
-  </audio>
-</ul>
+![resynthesis](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/reconstruction_birds.png)
 
 
 ![oggull](https://github.com/cyrusvahidi/jtfs-gpu/blob/main/audio/laughinggull.wav)
