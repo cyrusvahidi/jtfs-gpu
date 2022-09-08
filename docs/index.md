@@ -26,16 +26,15 @@
 ## Resynthesis from scattering coefficients
 ![resynthesis](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/reconstruction_birds.png)
 
-<ul class="bodyColum2">
-  <audio controls height="40px" width="100px">
+<ul class="bodyColum2"> (a) Laughing gull (original)
+  <audio controls height="40px" width="100px"> (b) Northern goshawk (original)
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/laughinggull.wav" type="audio/mpeg">
      <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/laughinggull.wav">
-     (a) Laughing gull (original)
   </audio>
+  (b) Northern goshawk (original)
   <audio controls height="40px" width="100px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/goshawk.wav" type="audio/mpeg">
      <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/goshawk.wav">
-    (b) Northern goshawk (original)
   </audio>
 </ul>
 
