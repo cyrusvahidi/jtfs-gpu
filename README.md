@@ -21,7 +21,7 @@ LS2N/CNRS Centrale Nantes<sup>1</sup>  Queen Mary University of London<sup>2</su
   -->   
   </div>
   
-many thanks to all opens-source contributors of ![Kymatio](https://github.com/kymatio/kymatio) and its dependencies
+many thanks to all open-source contributors to ![Kymatio](https://github.com/kymatio/kymatio) and its dependencies
    
 This repository is for the paper "Differentiable Time-Frequency Scattering on GPU" (accepted to DAFx 2022).
 
@@ -54,11 +54,11 @@ pip install -r requirements.txt
 
 # install kymatio from source
 cd kymatio
-pip install -r requirements.txt
-python setup.py install
+python setup.py develop
 ```   
 
-An experimental implementation of time-frequency scattering will soon be available in: ![WaveSpin](https://github.com/overLordGoldDragon/wavespin) package
+* The JTFS algorithm source code to replicate the paper can be found ![here](https://github.com/overLordGoldDragon/wavespin/tree/dafx2022-jtfs)
+* The latest version of JTFS can be installed directly from the ![Kymatio](https://github.com/kymatio/kymatio/) source
 
 ### ConvNet Classifier
 
