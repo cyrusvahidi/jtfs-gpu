@@ -18,7 +18,7 @@
 ![resynthesis](../blob/main/img/reconstruction_birds.png)
 
 ![oggull](https://github.com/cyrusvahidi/jtfs-gpu/audio/laughinggull.wav)
-![resynthjtfsgull](https://github.com/cyrusvahidi/jtfs-gpu/audio/reconstructed_jtfs_gull_j12_q12_t13.wav)
+![resynthjtfsgull](https://github.com/cyrusvahidi/jtfs-gpu/blob/main/audio/reconstructed_jtfs_acc_j12_q12_t13.wav?raw=true)
 ![resynthtimescgull](https://github.com/cyrusvahidi/jtfs-gpu/audio/reconstructed_timesc_gull_j12_q12_t13.wav)
 
 
