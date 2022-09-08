@@ -1,3 +1,10 @@
+# data files
+*.wav
+*.zip
+*.csv
+*.npy
+*.ckpt
+
 __pycache__
 .ipynb_checkpoints
 
@@ -163,3 +170,5 @@ cython_debug/
 
 .DS_Store
 nyu/stfr-like-model/
+*wandb*
+*scripts/results*

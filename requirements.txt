@@ -25,7 +25,6 @@ decorator==4.4.2
 defusedxml==0.7.1
 Deprecated==1.2.13
 dill==0.3.4
--e git+https://github.com/mathieulagrange/doce.git@3ad246067c6a8ac829899e7e888f4debbad80629#egg=doce
 docker-pycreds==0.4.0
 efficientnet-pytorch==0.7.1
 entrypoints==0.4
@@ -69,7 +68,6 @@ keras==2.8.0
 Keras-Preprocessing==1.1.2
 kiwisolver==1.3.2
 kymatio==0.2a0
--e git+https://github.com/rastegah/scattering-examples.git@ebd6fe808c846dfbc23fc9b76fc7149be722c5d7#egg=kymjtfs
 libclang==13.0.0
 librosa==0.9.0
 llvmlite==0.38.0
