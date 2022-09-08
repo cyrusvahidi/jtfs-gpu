@@ -1,8 +1,8 @@
 
 
-MSDB_DATA_DIR = '/import/c4dm-datasets/medley-solos-db/'
+MSDB_DATA_DIR = 'scripts/import/c4dm-datasets/medley-solos-db/'
 
-MSDB_CSV = '/import/c4dm-datasets/medley-solos-db/annotation/Medley-solos-DB_metadata.csv'
+MSDB_CSV = 'scripts/import/c4dm-datasets/medley-solos-db/annotation/Medley-solos-DB_metadata.csv'
 
 
 
@@ -16,3 +16,4 @@ MedleyDataModule.feature = 'scat1d'
 MedleySolosClassifier.feature = 'scat1d'
 MedleySolosClassifier.c = 0.1
 MedleySolosClassifier.learn_adalog = 0
+MedleySolosClassifier.std = 1
