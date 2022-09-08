@@ -7,9 +7,11 @@
 ![scale-rate](https://user-images.githubusercontent.com/16495490/161861321-cb3d9f2a-32f5-4abf-90f7-d9b2b85c9ae4.png)
 
 ## Amplitude-Modulated Chirp Signals
-<img align="center" height="200" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/modu_echirp.png"> 
-<img align="center" height="200" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/scale_reate_visual/moduChirp/moduChirp.gif">
 
+<p align="center">
+  <img height="200" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/modu_echirp.png"> 
+  <img height="200" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/scale_reate_visual/moduChirp/moduChirp.gif">
+</p>
 
 ### Visualization of Isomap embedding
 ![isomaps](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/isomaps.png)
