@@ -18,12 +18,12 @@
 ![resynthesis](https://github.com/cyrusvahidi/jtfs-gpu/blob/main/img/reconstruction_birds.png)
 
 <ul class="bodyColum2">
-  <img><source src="/img/reconstruction_birds.png" type="audio/mpeg">
-     <embed height="160" width="300" src="img/reconstruction_birds.png">
+  <img><source src="../img/reconstruction_birds.png" type="audio/mpeg">
+     <embed height="160" width="300" src="../img/reconstruction_birds.png">
   </img>
   <audio controls height="40px" width="100px">
-     <source src="/audio/laughinggull.wav" type="audio/mpeg">
-     <embed height="50" width="100" src="/audio/laughinggull.wav">
+     <source src="../../audio/laughinggull.wav" type="audio/mpeg">
+     <embed height="50" width="100" src="../../audio/laughinggull.wav">
   </audio>
 </ul>
 
