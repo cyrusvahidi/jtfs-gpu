@@ -10,6 +10,9 @@
 
 <p align="center">
   <img height="200" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/modu_echirp.png"> 
+</p>
+
+<p align="center">
   <img height="200" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/scale_reate_visual/moduChirp/moduChirp.gif">
 </p>
 
