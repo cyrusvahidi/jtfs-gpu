@@ -17,6 +17,10 @@
 ## Resynthesis from scattering coefficients
 ![resynthesis](https://github.com/cyrusvahidi/jtfs-gpu/blob/main/img/reconstruction_birds.png)
 
+<img><source src="https://github.com/cyrusvahidi/jtfs-gpu/blob/main/img/reconstruction_birds.png" type="audio/mpeg">
+     <embed height="160" width="300" src="https://github.com/cyrusvahidi/jtfs-gpu/blob/main/img/reconstruction_birds.png">
+  </img>
+  
 <ul class="bodyColum2">
   <img><source src="../img/reconstruction_birds.png" type="audio/mpeg">
      <embed height="160" width="300" src="../img/reconstruction_birds.png">
