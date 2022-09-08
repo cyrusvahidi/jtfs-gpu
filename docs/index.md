@@ -30,7 +30,7 @@
 ![resynthesis](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/reconstruction_birds.png)
 
 <ul class="bodyColum2"> 
-  Laughing gull <br>
+  **Laughing gull** <br>
   (a) original
   <audio controls height="40px" width="100px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/laughinggull.wav" type="audio/mpeg">
@@ -49,7 +49,7 @@
 </ul>
 
 <ul class="bodyColum2"> 
-  Northern goshawk <br>
+  **Northern goshawk** <br>
   (e) original
   <audio controls height="40px" width="100px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/goshawk.wav" type="audio/mpeg">
