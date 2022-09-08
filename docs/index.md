@@ -14,18 +14,13 @@
 
 ### Visualization of Isomap embedding
 <p align="center" width="100%">
-    <img height="50%" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/JTFS/isomap.png">
-    <img height="50%" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/MFCC/isomap.png">
-    <img height="50%" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/OPEN-L3/isomap.png">
-    <img height="50%" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/TS/isomap.png">
-    <img height="50%" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/STRF/isomap.png">
+    <img height="20%" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/JTFS/isomap.png">
+    <img height="20%" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/MFCC/isomap.png">
+    <img height="20%" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/OPEN-L3/isomap.png">
+    <img height="20%" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/TS/isomap.png">
+    <img height="20%" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/STRF/isomap.png">
 </p>
 
-![jtfs](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/JTFS/isomap.png)
-![mfcc](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/MFCC/isomap.png)
-![OPENL3](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/OPEN-L3/isomap.png)
-![TS](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/TS/isomap.png)
-![strf](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/STRF/isomap.png)
 
 ### K-NN parameter regression
 ![knn](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/knn.png)
@@ -34,12 +29,11 @@
 ## Resynthesis from scattering coefficients
 ![resynthesis](https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/img/reconstruction_birds.png)
 
-<ul class="bodyColum2"> (a) Laughing gull (original)
-  <audio controls height="40px" width="100px"> (a) Laughing gull (original)
+<ul class="bodyColum2">
+  <audio controls height="40px" width="100px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/laughinggull.wav" type="audio/mpeg">
      <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/laughinggull.wav">
   </audio>
-  (a) Laughing gull (original)
   <audio controls height="40px" width="100px">
      <source src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/goshawk.wav" type="audio/mpeg">
      <embed height="50" width="60" src="https://raw.githubusercontent.com/cyrusvahidi/jtfs-gpu/main/audio/goshawk.wav">
