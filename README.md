@@ -21,13 +21,15 @@ LS2N/CNRS Centrale Nantes<sup>1</sup>  Queen Mary University of London<sup>2</su
   -->   
   </div>
   
-many thanks to all open-source contributors to ![Kymatio](https://github.com/kymatio/kymatio) and its dependencies
+  
+![Accompanying webpage 🌐](https://cyrusvahidi.github.io/jtfs-gpu/) <br>
+![Kymatio: open-source wavelet scattering in Python ‍💻](https://github.com/kymatio/kymatio/)
+  
+Many thanks to all open-source contributors to ![Kymatio](https://github.com/kymatio/kymatio) and its dependencies.
    
 This repository contains code to replicate the paper "Differentiable Time-Frequency Scattering on GPU" (published at DAFx 2022, best paper award).
 
-![Accompanying webpage 🌐](https://cyrusvahidi.github.io/jtfs-gpu/) <br>
-![Kymatio open-source wavelet scattering in Python ‍💻](https://github.com/kymatio/kymatio/)
-
+Time-frequency scattering is available in ![Kymatio](https://github.com/kymatio/kymatio/) in beta and will be released in v0.4. To use this implementation, install Kymatio from source. To replicate the results in this paper, follow the installation instructions below.
 
 We assess Time-Frequency Scattering in Kymatio for 3 machine listening research applications:
 
