@@ -25,7 +25,7 @@ many thanks to all open-source contributors to ![Kymatio](https://github.com/kym
    
 This repository contains code to replicate the paper "Differentiable Time-Frequency Scattering on GPU" (published at DAFx 2022, best paper award).
 
-![Accompanying webpage 🌐](https://cyrusvahidi.github.io/jtfs-gpu/)
+![Accompanying webpage 🌐](https://cyrusvahidi.github.io/jtfs-gpu/) <br>
 ![Kymatio open-source wavelet scattering in Python ‍💻](https://github.com/kymatio/kymatio/)
 
 
