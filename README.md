@@ -54,7 +54,7 @@ First, install dependencies
 git clone https://github.com/cyrusvahidi/jtfs-gpu
 
 # install project   
-cd kymatio-jtfs
+cd kym-jtfs
 pip install -e .
 pip install -r requirements.txt
 
