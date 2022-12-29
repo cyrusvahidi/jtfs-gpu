@@ -54,12 +54,12 @@ First, install dependencies
 git clone https://github.com/cyrusvahidi/jtfs-gpu
 
 # install project   
-cd kym-jtfs
+cd jtfs-gpu
 pip install -e .
 pip install -r requirements.txt
 
 # install kymatio from source
-cd ../kymatio
+cd kymatio
 python setup.py develop
 ```   
 
