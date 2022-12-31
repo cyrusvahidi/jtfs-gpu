@@ -1,4 +1,4 @@
-from distutils.core import setup
+from setuptools import setup
 
 setup(
     name="kymjtfs",
@@ -7,7 +7,8 @@ setup(
     author="Cyrus Vahidi",
     author_email="c.vahidi@qmul.ac.uk",
     include_package_data=True,
-    url="https://github.com/rastegah/kymatio-jtfs,",
+    packages=['kymjtfs'],
+    url="https://github.com/cyrusvahidi/jtfs-gpu",
     install_requires=["gin-config",
               "librosa", 
               "nnAudio", 
