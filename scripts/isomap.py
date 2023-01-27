@@ -7,7 +7,7 @@ import torch
 import warnings
 
 from fractions import Fraction
-from kymatio.torch import TimeFrequencyScattering1D, Scattering1D
+from kymatio.torch import TimeFrequencyScattering, Scattering1D
 from sklearn.manifold import Isomap
 
 try:
@@ -85,23 +85,14 @@ def extract_time_scattering(audio, duration, sr, **ts_kwargs):
 
 def extract_jtfs(audio, duration, sr, **jtfs_kwargs):
     N = duration * sr
-    jtfs = TimeFrequencyScattering1D(
-        shape=(N,),
-        T=N,
-        Q=8,
-        J=int(np.log2(N) - 1),
-        pad_mode='zero',
-        pad_mode_fr='zero',
-        max_pad_factor=3,
-        max_pad_factor_fr=None,
-        sampling_filters_fr='resample').cuda()
+    jtfs = TimeFrequencyScattering(shape=(N,), T=N, Q=(8, 1), J=int(np.log2(N) - 1), Q_fr=2, J_fr=6, F=0, format="time").cuda()
 
-    X = torch.tensor(audio).cuda()
-    n_samples, n_paths = X.shape[0], jtfs(X[0]).shape[1]
+    X = torch.tensor(audio, dtype=torch.float32).cuda()
+    n_samples, n_paths = X.shape[0], jtfs(X[0]).shape[0]
     sx = torch.zeros(n_samples, n_paths)
 
     for i in tqdm.tqdm(range(n_samples)):
-        sx[i, :] = jtfs(X[i, :])[:, :, 0]
+        sx[i, :] = jtfs(X[i, :])[:, 0]
 
     return sx.cpu().numpy()
 
@@ -143,29 +134,27 @@ def extract_strf(audio, duration, sr, **strf_kwargs):
 
 def plot_isomap(Y, cmap, out_dir):
     fig = plt.figure(figsize=plt.figaspect(0.5))
-    ax = fig.add_subplot(1, 3, 1, projection='3d')
-    ax.scatter3D(Y[:, 0], Y[:, 1], Y[:, 2], c=cmap[0], cmap='bwr');
+    axs = []
 
-    ax.set_xticklabels([])
-    ax.set_yticklabels([])
-    ax.set_zticklabels([])
+    for i in range(3):
+        ax = fig.add_subplot(1, 3, i + 1, projection='3d')
+        ax.scatter3D(Y[:, 0], Y[:, 1], Y[:, 2], c=cmap[i], cmap='bwr');
 
-    # f modulator
-    ax = fig.add_subplot(1, 3, 2, projection='3d')
-    ax.scatter3D(Y[:, 0], Y[:, 1], Y[:, 2], c=cmap[1], cmap='bwr');
-    ax.set_xticklabels([])
-    ax.set_yticklabels([])
-    ax.set_zticklabels([])
+        ax.set_xticklabels([])
+        ax.set_yticklabels([])
+        ax.set_zticklabels([])
+        axs.append(ax)
 
-    # chirp rate
-    ax = fig.add_subplot(1, 3, 3, projection='3d')
-    ax.scatter3D(Y[:, 0], Y[:, 1], Y[:, 2], c=cmap[2], cmap='bwr');
-    ax.set_xticklabels([])
-    ax.set_yticklabels([])
-    ax.set_zticklabels([])
     plt.subplots_adjust(wspace=0, hspace=0)
 
-    plt.savefig(os.path.join(out_dir, 'isomap.png'))
+    plt.savefig(os.path.join(out_dir, 'isomap_0.png'))
+
+    # rotate the axes and update
+    for angle in range(60, 360, 60):
+        for ax in axs:
+            ax.view_init(30, angle)
+            plt.draw()
+            plt.savefig(os.path.join(out_dir, f'isomap_{angle}.png'))
 
 
 def plot_knn_regression(ratios, out_dir):
@@ -243,15 +232,15 @@ def run_isomap(
     gammas = np.logspace(np.log10(gamma_min), np.log10(gamma_max), n_steps)
     audio, cmap = generate_audio(f0s, fms, gammas, duration, sr)
 
-    mfcc = extract_mfcc(audio, f0s, fms, gammas, sr)
-    ts = extract_time_scattering(audio.reshape(-1, audio.shape[-1]), duration, sr)
+    # mfcc = extract_mfcc(audio, f0s, fms, gammas, sr)
+    # ts = extract_time_scattering(audio.reshape(-1, audio.shape[-1]), duration, sr)
     jtfs = extract_jtfs(audio.reshape(-1, audio.shape[-1]), duration, sr)    
-    ol3 = extract_openl3(audio.reshape(-1, audio.shape[-1]), sr)
-    strf = extract_strf(audio.reshape(-1, audio.shape[-1]), duration, sr)
+    # ol3 = extract_openl3(audio.reshape(-1, audio.shape[-1]), sr)
+    # strf = extract_strf(audio.reshape(-1, audio.shape[-1]), duration, sr)
 
-    X = {"MFCC": mfcc, "TS": ts, "JTFS": jtfs, "OPEN-L3": ol3, "STRF": strf}
+    # X = {"MFCC": mfcc, "TS": ts, "JTFS": jtfs, "OPEN-L3": ol3, "STRF": strf}
     # X = {"MFCC": mfcc, "TS": ts, "JTFS": jtfs}
-    # X = {"TS": ts, "JTFS": jtfs}
+    X = {"JTFS": jtfs}
 
     run_isomaps(X, cmap, out_dir)
 
