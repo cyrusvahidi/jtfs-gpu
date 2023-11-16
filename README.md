@@ -97,31 +97,6 @@ jupyter notebook
 ```
 See `Scale-Rate Visualization.ipynb` and `Resynthesis results.ipynb`
 
-### Notebook Guide
-
-#### Scale-Rate Visualisations
-
-H E L L O
-
-#### Synthetic amplitude-modulated chirp dataset
-* Factors of variation: 
- * $f_c$ carrier frequency
- * $f_m$ amplitude modulation frequency
- * $\gamma$ chirp rate
-
-#### Manifold Embedding of the Nearest Neighbour Graph
-* MFCCs
-* Time Scattering
-* Time-Frequency Scattering
-* Open-L3
-* Spectrotemporal Receptive Field (STRF)
-
-#### K-NN regression of synthesizer parameters
-
-#### 2-D CNN classifier
-
-#### Differentiable Resynthesis 
-
 ### Citation   
 ```
 @article{muradeli2022differentiable,
